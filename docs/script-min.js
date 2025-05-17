@@ -36,18 +36,48 @@ function finishSurveyLocal() {
   params.genderIn = localGenderIn;
   params.regionIn = localRegionIn;
   params.emailStatus = localEmailStatus;
-  if (typeof currentCode !== 'undefined') params.currentCode = currentCode;
-  if (typeof usedCodes !== 'undefined') params.usedCodes = usedCodes;
+  // 코드 관련 정보 처리
+  params.currentCode = currentCode || '';
+  
+  // usedCodes가 이 시점에 undefined면 localStorage에서 직접 로드
+  if (typeof usedCodes === 'undefined' || !Array.isArray(usedCodes)) {
+    try {
+      const storedUsedCodes = localStorage.getItem('usedCodes');
+      if (storedUsedCodes) {
+        params.usedCodes = JSON.parse(storedUsedCodes);
+        console.log('localStorage에서 usedCodes 로드 성공:', params.usedCodes.length + '개');
+      } else {
+        params.usedCodes = [];
+        console.log('localStorage에 usedCodes가 없음, 빈 배열 사용');
+      }
+    } catch (e) {
+      console.error('usedCodes 로드 오류:', e);
+      params.usedCodes = [];
+    }
+  } else {
+    params.usedCodes = usedCodes;
+    console.log('전역 usedCodes 사용:', usedCodes.length + '개');
+  }
   if (typeof emailStatus !== 'undefined') params.emailStatus = emailStatus;
   if (typeof sendEmailBtn !== 'undefined') params.sendEmailBtn = sendEmailBtn;
   if (typeof downloadLink !== 'undefined') params.downloadLink = downloadLink;
   if (typeof usedDL !== 'undefined') params.usedDL = usedDL;
-  if (typeof respA !== 'undefined') params.respA = respA;
-  if (typeof respB !== 'undefined') params.respB = respB;
-  if (typeof respC !== 'undefined') params.respC = respC;
-  if (typeof questionsA !== 'undefined') params.questionsA = questionsA;
-  if (typeof questionsB !== 'undefined') params.questionsB = questionsB;
-  if (typeof questionsC !== 'undefined') params.questionsC = questionsC;
+  // 설문 응답 및 문항 데이터 - 주의: 반드시 배열 형태로 전달해야 함
+  params.respA = Array.isArray(respA) ? respA : [];
+  params.respB = Array.isArray(respB) ? respB : [];
+  params.respC = Array.isArray(respC) ? respC : [];
+  params.questionsA = Array.isArray(questionsA) ? questionsA : [];
+  params.questionsB = Array.isArray(questionsB) ? questionsB : [];
+  params.questionsC = Array.isArray(questionsC) ? questionsC : [];
+  
+  console.log('설문 데이터 상태:', {
+    'respA 배열?': Array.isArray(respA),
+    'respB 배열?': Array.isArray(respB),
+    'respC 배열?': Array.isArray(respC),
+    'questionsA 배열?': Array.isArray(questionsA),
+    'questionsB 배열?': Array.isArray(questionsB),
+    'questionsC 배열?': Array.isArray(questionsC)
+  });
   if (typeof bPills !== 'undefined') params.bPills = bPills;
   if (typeof tPills !== 'undefined') params.tPills = tPills;
   if (typeof regionIn !== 'undefined') params.regionIn = regionIn;
