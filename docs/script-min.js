@@ -12,13 +12,30 @@ function finishSurveyLocal() {
   if (typeof surveyDiv !== 'undefined' && surveyDiv) surveyDiv.classList.add('hidden');
   if (typeof resultDiv !== 'undefined' && resultDiv) resultDiv.classList.remove('hidden');
 
+  // DOM 요소 가져오기 (오류 방지를 위해 직접 DOM에서 참조)
+  const localNameIn = document.getElementById('name');
+  const localSchoolIn = document.getElementById('school');
+  const localGenderIn = document.getElementById('gender');
+  const localRegionIn = document.getElementById('region');
+  const localEmailStatus = document.getElementById('email-status');
+
+  console.log('DOM 요소 참조 상태:', {
+    nameIn: localNameIn ? '찾음 ✓' : '없음 ✗',
+    schoolIn: localSchoolIn ? '찾음 ✓' : '없음 ✗',
+    genderIn: localGenderIn ? '찾음 ✓' : '없음 ✗',
+    regionIn: localRegionIn ? '찾음 ✓' : '없음 ✗',
+    emailStatus: localEmailStatus ? '찾음 ✓' : '없음 ✗'
+  });
+
   // 파라미터로 전달할 객체 생성 (방어적 코딩)
   const params = {};
   
   // DOM 요소 및 변수 존재 여부 확인 후 파라미터에 추가
-  if (typeof nameIn !== 'undefined') params.nameIn = nameIn;
-  if (typeof schoolIn !== 'undefined') params.schoolIn = schoolIn;
-  if (typeof genderIn !== 'undefined') params.genderIn = genderIn;
+  params.nameIn = localNameIn;
+  params.schoolIn = localSchoolIn;
+  params.genderIn = localGenderIn;
+  params.regionIn = localRegionIn;
+  params.emailStatus = localEmailStatus;
   if (typeof currentCode !== 'undefined') params.currentCode = currentCode;
   if (typeof usedCodes !== 'undefined') params.usedCodes = usedCodes;
   if (typeof emailStatus !== 'undefined') params.emailStatus = emailStatus;
@@ -41,17 +58,17 @@ function finishSurveyLocal() {
     console.log('TEST 모드: 폼 데이터를 명시적으로 복사합니다.');
     try {
       // TEST 모드에서는 직접 값을 설정하여 N/A 방지
-      if (nameIn && nameIn.value) {
-        console.log('이름 설정:', nameIn.value);
+      if (localNameIn && localNameIn.value) {
+        console.log('이름 설정:', localNameIn.value);
       }
-      if (schoolIn && schoolIn.value) {
-        console.log('학교 설정:', schoolIn.value);
+      if (localSchoolIn && localSchoolIn.value) {
+        console.log('학교 설정:', localSchoolIn.value);
       }
-      if (genderIn && genderIn.value) {
-        console.log('성별 설정:', genderIn.value);
+      if (localGenderIn && localGenderIn.value) {
+        console.log('성별 설정:', localGenderIn.value);
       }
-      if (regionIn && regionIn.value) {
-        console.log('지역 설정:', regionIn.value);
+      if (localRegionIn && localRegionIn.value) {
+        console.log('지역 설정:', localRegionIn.value);
       }
       
       // 선택된 B등급 과목수와 진학희망고교 인덱스 검색
@@ -69,10 +86,10 @@ function finishSurveyLocal() {
       
       // 추가 메타데이터 저장
       params.formData = {
-        name: nameIn?.value || '테스트 사용자',
-        school: schoolIn?.value || '테스트 학교',
-        gender: genderIn?.value || '남',
-        region: regionIn?.value || '서울 특별시',
+        name: localNameIn?.value || '테스트 사용자',
+        school: localSchoolIn?.value || '테스트 학교',
+        gender: localGenderIn?.value || '남',
+        region: localRegionIn?.value || '서울 특별시',
         bIndex: bIndex,
         tIndex: tIndex
       };
@@ -109,7 +126,8 @@ function finishSurveyLocal() {
       // 학생 데이터 생성 (방어적 코딩)
       const row = {
         학생ID: nextId,
-        학생성명: (nameIn && nameIn.value) ? nameIn.value : 'N/A',
+        학생성명: (localNameIn && localNameIn.value) ? localNameIn.value : 'N/A',
+        출신학교: (localSchoolIn && localSchoolIn.value) ? localSchoolIn.value : 'N/A',
         설문완료일시: completeAt,
         사용한코드: currentCode || 'UNKNOWN'
       };
@@ -117,15 +135,15 @@ function finishSurveyLocal() {
       surveyDB.push(row);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
       
-      if (emailStatus) {
-        emailStatus.textContent = '서버 연결 시도 중...';
+      if (localEmailStatus) {
+        localEmailStatus.textContent = '서버 연결 시도 중...';
         
         // 간단한 이메일 전송 시도
         fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentName: (nameIn && nameIn.value) ? nameIn.value : 'N/A',
+            studentName: (localNameIn && localNameIn.value) ? localNameIn.value : 'N/A',
             content: btoa(JSON.stringify(row)),
             fileType: 'json'
           })
@@ -133,16 +151,16 @@ function finishSurveyLocal() {
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            emailStatus.textContent = '결과가 이메일로 전송되었습니다.';
-            emailStatus.style.color = '#2E7D32';
+            localEmailStatus.textContent = '결과가 이메일로 전송되었습니다.';
+            localEmailStatus.style.color = '#2E7D32';
           } else {
             throw new Error(data.error || '이메일 전송 실패');
           }
         })
         .catch(error => {
           console.error('이메일 전송 오류:', error);
-          emailStatus.textContent = '이메일 전송 실패: ' + error.message;
-          emailStatus.style.color = '#D32F2F';
+          localEmailStatus.textContent = '이메일 전송 실패: ' + error.message;
+          localEmailStatus.style.color = '#D32F2F';
         });
       }
     }
