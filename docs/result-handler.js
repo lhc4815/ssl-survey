@@ -58,8 +58,15 @@ async function handleEmailSend(row, emailStatus) {
   const email = 'lhc4815@gmail.com';
   const nameVal = row.학생성명 || 'N/A';
   
-  emailStatus.textContent = '이메일 전송 중...';
-  emailStatus.style.color = '#1A237E';
+  // emailStatus 안전하게 사용
+  try {
+    if (emailStatus) {
+      emailStatus.textContent = '이메일 전송 중...';
+      emailStatus.style.color = '#1A237E';
+    }
+  } catch (e) {
+    console.error('이메일 상태 업데이트 오류:', e);
+  }
   
   try {
     // 결과 JSON 생성
@@ -104,35 +111,60 @@ async function handleEmailSend(row, emailStatus) {
 
 // 설문 완료 처리 함수
 function finishSurvey(params) {
+  console.log('finishSurvey 함수 시작, 파라미터:', Object.keys(params));
+  
+  // 파라미터 안전 추출 (방어적 코딩)
   const {
     nameIn, currentCode, usedCodes, emailStatus, sendEmailBtn,
     downloadLink, usedDL, respA, respB, respC, questionsA, questionsB, questionsC,
     bPills, tPills, regionIn, clearQuestionTimer, totalInt, surveyDiv, resultDiv
-  } = params;
+  } = params || {};
   
   // A) UI 전환 & 타이머 정리
-  clearQuestionTimer();
-  clearInterval(totalInt);
-  surveyDiv.classList.add('hidden');
-  resultDiv.classList.remove('hidden');
+  if (typeof clearQuestionTimer === 'function') clearQuestionTimer();
+  if (totalInt) clearInterval(totalInt);
+  if (surveyDiv) surveyDiv.classList.add('hidden');
+  if (resultDiv) resultDiv.classList.remove('hidden');
 
   // ── 코드 사용 등록 확실하게 처리 ───────────────────
-  if (currentCode && currentCode.length >= 4) {
+  if (currentCode && currentCode.length >= 4 && Array.isArray(usedCodes)) {
     if (!usedCodes.includes(currentCode)) {
       usedCodes.push(currentCode);
       // 로컬스토리지에 반영
-      localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
-      console.log('✔ 코드 사용 등록:', currentCode);
+      try {
+        localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
+        console.log('✔ 코드 사용 등록:', currentCode);
+      } catch (e) {
+        console.error('코드 저장 오류:', e);
+      }
     }
   }
 
-  // B) 개인 정보 수집
-  const nameVal = nameIn.value || 'N/A';
+  // B) 개인 정보 수집 (방어적 코딩)
+  const nameVal = (nameIn && nameIn.value) ? nameIn.value : 'N/A';
   const genderMap = { '남': 0, '여': 1, '기타': 2 };
-  const genderCode = genderMap[genderIn.value] || 2;
-  const regionOpts = Array.from(regionIn.options).filter(o => o.value);
-  const sortedRegions = regionOpts.map(o => o.text).sort((a,b) => a.localeCompare(b,'ko'));
-  const regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
+  
+  // genderIn 안전 참조
+  let genderCode = 2; // 기본값
+  try {
+    if (params.genderIn && params.genderIn.value) {
+      genderCode = genderMap[params.genderIn.value] || 2;
+    }
+  } catch (e) {
+    console.error('성별 정보 처리 오류:', e);
+  }
+  
+  // regionIn 안전 참조
+  let regionCode = -1; // 기본값
+  try {
+    if (regionIn && regionIn.options && regionIn.selectedOptions) {
+      const regionOpts = Array.from(regionIn.options).filter(o => o.value);
+      const sortedRegions = regionOpts.map(o => o.text).sort((a,b) => a.localeCompare(b,'ko'));
+      regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
+    }
+  } catch (e) {
+    console.error('지역 정보 처리 오류:', e);
+  }
 
   // C) Type A 처리: 데이터+평균
   const dataA = questionsA.map((q,i) => ({
@@ -179,14 +211,40 @@ function finishSurvey(params) {
   const completeAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ` +
                      `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
   
+  // 학생 정보 생성 (방어적 코딩)
+  let schoolValue = 'N/A';
+  try {
+    if (nameIn && nameIn.value) schoolValue = nameIn.value.trim();
+  } catch (e) {
+    console.error('학교 정보 처리 오류:', e);
+  }
+  
+  // bPills 및 tPills 안전 참조
+  let bValue = -1, tValue = -1;
+  try {
+    if (Array.isArray(bPills)) {
+      bValue = bPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+    }
+  } catch (e) {
+    console.error('B등급 정보 처리 오류:', e);
+  }
+  
+  try {
+    if (Array.isArray(tPills)) {
+      tValue = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+    }
+  } catch (e) {
+    console.error('진학희망 정보 처리 오류:', e);
+  }
+  
   const row = {
     학생ID: nextId,
     학생성명: nameVal,
-    출신학교: nameIn.value.trim(),
+    출신학교: schoolValue,
     성별: genderCode,
     거주지역: regionCode,
-    B등급과목수: bPills.findIndex(p => p.classList.contains('selected')),
-    진학희망고교: tPills.findIndex(p => p.classList.contains('selected')),
+    B등급과목수: bValue,
+    진학희망고교: tValue,
     자기조절능력평균: averages.find(a => a['척도(대분류)'] === '자기조절능력')?.평균 || 0,
     비교과수행능력평균: averages.find(a => a['척도(대분류)'] === '비교과활동수행력')?.평균 || 0,
     내면학업수행능력평균: averages.find(a => a['척도(대분류)'] === '내면학업수행능력')?.평균 || 0,
@@ -199,8 +257,13 @@ function finishSurvey(params) {
     사용한코드: currentCode
   };
   
-  surveyDB.push(row);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
+  try {
+    surveyDB.push(row);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
+    console.log('설문 결과 저장 완료:', nextId);
+  } catch (e) {
+    console.error('결과 저장 오류:', e);
+  }
 
   // JSON 생성 - 설문 결과
   const jsonResult = generateSurveyResultJSON(row);
