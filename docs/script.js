@@ -1013,6 +1013,22 @@ saveToUsedDataExcel(row, respA, respB, respC);
 
 // used_data.xlsx에 결과를 저장하는 함수
 function saveToUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses) {
+  console.log('📊 used_data.xlsx 처리 시작...');
+  
+  // 다운로드 링크 추가 (항상 표시)
+  const usedDataLink = document.createElement('a');
+  usedDataLink.id = 'used-data-download-link';
+  usedDataLink.href = 'used_data.xlsx';
+  usedDataLink.setAttribute('download', 'used_data.xlsx');
+  usedDataLink.textContent = '📥 모든 응답 데이터 다운로드';
+  usedDataLink.style.marginLeft = '12px';
+  
+  // 기존 다운로드 영역에 추가
+  const downloadLink = document.getElementById('download-link');
+  if (downloadLink && downloadLink.parentNode) {
+    downloadLink.parentNode.appendChild(usedDataLink);
+  }
+  
   // used_data.xlsx 파일 로드 시도
   fetch('used_data.xlsx')
     .then(r => {
@@ -1110,6 +1126,7 @@ function saveToUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResp
 
 // 새 used_data.xlsx 파일을 생성하는 함수
 function createNewUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses) {
+  console.log('📊 새 used_data.xlsx 파일 생성 시작...');
   // 새 워크북 생성
   const wb = XLSX.utils.book_new();
   
@@ -1178,16 +1195,33 @@ function createNewUsedDataExcel(userData, typeAResponses, typeBResponses, typeCR
     .then(res => res.json())
     .then(json => {
       if (json.success) {
-        console.log('✓ 새 used_data.xlsx 파일 생성 및 저장 성공');
+        console.log('✓ 새 used_data.xlsx 파일 생성 및 저장 성공', json);
+        // 다운로드 링크 업데이트
+        const usedDataLink = document.getElementById('used-data-download-link');
+        if (usedDataLink) {
+          usedDataLink.href = json.accessUrl || 'used_data.xlsx';
+        }
       } else {
         console.error('✗ 새 used_data.xlsx 파일 생성 실패:', json.error);
       }
     })
-    .catch(err => console.error('네트워크 오류:', err));
+    .catch(err => {
+      console.error('네트워크 오류:', err);
+      alert('설문 데이터 저장 중 오류가 발생했습니다.');
+    });
   });
   
   return null; // 호출 체인 중단
 }
+
+// 2초 후 used_data.xlsx 파일을 다운로드 링크에 연결 (파일 저장 완료 대기)
+setTimeout(() => {
+  const usedDataLink = document.getElementById('used-data-download-link');
+  if (usedDataLink) {
+    usedDataLink.href = 'used_data.xlsx?t=' + new Date().getTime(); // 캐시 방지
+    console.log('📥 used_data.xlsx 다운로드 링크 업데이트 완료');
+  }
+}, 2000);
 
   /* ── 헬퍼 ───────────────────────────────────── */
   function pad(n){ return n.toString().padStart(2,'0'); }

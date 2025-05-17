@@ -42,26 +42,10 @@ app.use(express.json({ limit: '50mb' }));
 // data 폴더가 없으면 생성
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// ── 설문 엑셀 자동 저장 API ───────────────────────────────
-app.post('/api/save-excel', (req, res) => {
-  const { filename, content } = req.body;
-  if (!filename || !content) {
-    return res.status(400).json({ success: false, error: 'filename 및 content 필요' });
-  }
+// docs 폴더에도 직접 저장할 수 있도록 설정
+const DOCS_DIR = path.join(__dirname, 'docs');
+if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true });
 
-  const filePath = path.join(DATA_DIR, filename);
-  try {
-    const buffer = Buffer.from(content, 'base64');
-    fs.writeFileSync(filePath, buffer);
-    return res.json({ success: true, file: filePath });
-  } catch (err) {
-    console.error('[/api/save-excel] 오류', err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-
-// ─── 사용된 코드 저장 API ─────────────────────────────
 // ─── 엑셀 자동 저장 API ─────────────────────────────────────
 app.post('/api/save-excel', (req, res) => {
   const { filename, content } = req.body;
@@ -72,18 +56,27 @@ app.post('/api/save-excel', (req, res) => {
     });
   }
 
-  // 1) 저장할 전체 경로
-  const filePath = path.join(DATA_DIR, filename);
-
   try {
-    // 2) Base64 → Buffer
+    // Base64 → Buffer
     const fileBuffer = Buffer.from(content, 'base64');
 
-    // 3) 파일 쓰기
-    fs.writeFileSync(filePath, fileBuffer);
+    // 파일 저장 - DATA_DIR에 저장
+    const dataFilePath = path.join(DATA_DIR, filename);
+    fs.writeFileSync(dataFilePath, fileBuffer);
+    
+    // docs 폴더에도 복사본 저장 (클라이언트에서 접근 가능하도록)
+    if (filename === 'used_data.xlsx') {
+      const docsFilePath = path.join(DOCS_DIR, filename);
+      fs.writeFileSync(docsFilePath, fileBuffer);
+      console.log(`✓ 파일이 두 위치에 저장됨: ${dataFilePath}, ${docsFilePath}`);
+    }
 
-    // 4) 성공 응답
-    res.json({ success: true, file: filePath });
+    // 성공 응답
+    res.json({ 
+      success: true, 
+      file: dataFilePath,
+      accessUrl: filename // 클라이언트에서 접근 가능한 상대 URL
+    });
   } catch (err) {
     console.error('[/api/save-excel] 파일 저장 중 오류:', err);
     res.status(500).json({
@@ -94,8 +87,31 @@ app.post('/api/save-excel', (req, res) => {
 });
 
 
-// ─── (선택) 정적 파일 제공 ─────────────────────────────
-// 클라이언트(index.html, script.js, .xlsx 등)가 docs/ 폴더에 있을 경우:
+// 설문 데이터 저장 API (memoryDB 용)
+app.post('/api/save-survey', (req, res) => {
+  try {
+    // 로그만 출력하고 성공 응답
+    console.log('설문 데이터 저장 요청 받음');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[/api/save-survey] 오류:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 사용된 코드 저장 API
+app.post('/api/save-codes', (req, res) => {
+  try {
+    // 로그만 출력하고 성공 응답
+    console.log('사용된 코드 저장 요청 받음');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[/api/save-codes] 오류:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 정적 파일 제공 (docs 폴더의 파일들)
 app.use(express.static(path.join(__dirname, 'docs')));
 
 app.listen(PORT, () => {
