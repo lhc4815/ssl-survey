@@ -1007,6 +1007,94 @@ fetch('/api/save-codes', {
   body: JSON.stringify({ usedCodes })
 });
 
+// used_data.xlsx에 결과 저장
+saveToUsedDataExcel(row, respA, respB, respC);
+}
+
+// used_data.xlsx에 결과를 저장하는 함수
+function saveToUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses) {
+  // used_data.xlsx 파일 로드
+  fetch('used_data.xlsx')
+    .then(r => r.arrayBuffer())
+    .then(buffer => {
+      // 엑셀 파일 로드
+      const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const sheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[sheetName];
+      
+      // 기존 데이터를 JSON으로 변환
+      const data = XLSX.utils.sheet_to_json(sheet);
+      
+      // 새 행 데이터 생성
+      const newRow = {
+        'code': userData.사용한코드 || currentCode,
+        '학생성명': userData.학생성명,
+        '출신학교': userData.출신학교,
+        '성별': userData.성별,
+        '거주지역': userData.거주지역,
+        '서울거주구': userData.서울거주구,
+        '특수학교': userData.특수학교,
+        'B등급과목수': userData.B등급과목수,
+        '진학희망고교': userData.진학희망고교
+      };
+      
+      // Type A, B, C 응답을 1~260 컬럼에 추가
+      typeAResponses.forEach((resp, idx) => {
+        newRow[`${idx + 1}`] = resp;
+      });
+      
+      typeBResponses.forEach((resp, idx) => {
+        newRow[`${typeAResponses.length + idx + 1}`] = resp;
+      });
+      
+      typeCResponses.forEach((resp, idx) => {
+        newRow[`${typeAResponses.length + typeBResponses.length + idx + 1}`] = resp;
+      });
+      
+      // 새 행 데이터 추가
+      data.push(newRow);
+      
+      // 데이터를 시트로 변환
+      const newSheet = XLSX.utils.json_to_sheet(data);
+      
+      // 워크북에 새 시트 추가 (기존 시트 대체)
+      wb.Sheets[sheetName] = newSheet;
+      
+      // 엑셀 파일 생성
+      const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // 서버에 저장
+      blob.arrayBuffer().then(buffer => {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const b64 = btoa(binary);
+        
+        fetch('/api/save-excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            filename: 'used_data.xlsx', 
+            content: b64 
+          })
+        })
+        .then(res => res.json())
+        .then(json => {
+          if (json.success) {
+            console.log('✓ used_data.xlsx 저장 성공');
+          } else {
+            console.error('✗ used_data.xlsx 저장 실패:', json.error);
+          }
+        })
+        .catch(err => console.error('네트워크 오류:', err));
+      });
+    })
+    .catch(err => {
+      console.error('used_data.xlsx 파일 로드 실패:', err);
+    });
 }
 
   /* ── 헬퍼 ───────────────────────────────────── */
