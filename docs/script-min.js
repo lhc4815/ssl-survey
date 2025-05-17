@@ -12,12 +12,32 @@ function finishSurveyLocal() {
   if (typeof surveyDiv !== 'undefined' && surveyDiv) surveyDiv.classList.add('hidden');
   if (typeof resultDiv !== 'undefined' && resultDiv) resultDiv.classList.remove('hidden');
 
-  // 외부 모듈의 finishSurvey 함수 호출
-  const params = {
-    nameIn, currentCode, usedCodes, emailStatus, sendEmailBtn,
-    downloadLink, usedDL, respA, respB, respC, questionsA, questionsB, questionsC,
-    bPills, tPills, regionIn, clearQuestionTimer, totalInt, surveyDiv, resultDiv
-  };
+  // 파라미터로 전달할 객체 생성 (방어적 코딩)
+  const params = {};
+  
+  // DOM 요소 및 변수 존재 여부 확인 후 파라미터에 추가
+  if (typeof nameIn !== 'undefined') params.nameIn = nameIn;
+  if (typeof currentCode !== 'undefined') params.currentCode = currentCode;
+  if (typeof usedCodes !== 'undefined') params.usedCodes = usedCodes;
+  if (typeof emailStatus !== 'undefined') params.emailStatus = emailStatus;
+  if (typeof sendEmailBtn !== 'undefined') params.sendEmailBtn = sendEmailBtn;
+  if (typeof downloadLink !== 'undefined') params.downloadLink = downloadLink;
+  if (typeof usedDL !== 'undefined') params.usedDL = usedDL;
+  if (typeof respA !== 'undefined') params.respA = respA;
+  if (typeof respB !== 'undefined') params.respB = respB;
+  if (typeof respC !== 'undefined') params.respC = respC;
+  if (typeof questionsA !== 'undefined') params.questionsA = questionsA;
+  if (typeof questionsB !== 'undefined') params.questionsB = questionsB;
+  if (typeof questionsC !== 'undefined') params.questionsC = questionsC;
+  if (typeof bPills !== 'undefined') params.bPills = bPills;
+  if (typeof tPills !== 'undefined') params.tPills = tPills;
+  if (typeof regionIn !== 'undefined') params.regionIn = regionIn;
+  
+  // 함수 참조
+  params.clearQuestionTimer = clearQuestionTimer;
+  if (typeof totalInt !== 'undefined') params.totalInt = totalInt;
+  if (typeof surveyDiv !== 'undefined') params.surveyDiv = surveyDiv;
+  if (typeof resultDiv !== 'undefined') params.resultDiv = resultDiv;
   
   try {
     // 외부 모듈의 finishSurvey 함수 호출
@@ -36,11 +56,12 @@ function finishSurveyLocal() {
       const completeAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ` +
                          `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
       
+      // 학생 데이터 생성 (방어적 코딩)
       const row = {
         학생ID: nextId,
-        학생성명: nameIn.value || 'N/A',
+        학생성명: (nameIn && nameIn.value) ? nameIn.value : 'N/A',
         설문완료일시: completeAt,
-        사용한코드: currentCode
+        사용한코드: currentCode || 'UNKNOWN'
       };
       
       surveyDB.push(row);
@@ -54,7 +75,7 @@ function finishSurveyLocal() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentName: nameIn.value || 'N/A',
+            studentName: (nameIn && nameIn.value) ? nameIn.value : 'N/A',
             content: btoa(JSON.stringify(row)),
             fileType: 'json'
           })
