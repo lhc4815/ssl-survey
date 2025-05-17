@@ -334,10 +334,20 @@ window.addEventListener('DOMContentLoaded', () => {
         
         // TEST 모드일 경우 마지막 문항으로 바로 이동
         if (isTestMode) {
-          console.log('TEST 모드: 마지막 문항으로 이동');
-          respA = Array(questionsA.length).fill(3); // 기본값 3으로 설정
-          respB = Array(questionsB.length).fill('A'); // 기본값 A로 설정
+          console.log('TEST 모드: 마지막 문항으로 이동 (테스트 데이터 생성)');
           
+          // 테스트용 의미있는 데이터 생성
+          respA = Array(questionsA.length).fill(0).map(() => Math.floor(Math.random() * 5) + 1); // 1-5 사이 랜덤값
+          respB = Array(questionsB.length).fill(0).map(() => ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]); // A-D 랜덤값
+          respC = Array(questionsC.length).fill(0).map(() => ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]); // A-D 랜덤값
+          
+          console.log('TEST 모드 샘플 응답 생성됨:', {
+            respA: respA.slice(0, 5) + '...',
+            respB: respB.join(''),
+            respC: respC.join('')
+          });
+          
+          // 인덱스 설정 (마지막 항목으로)
           idxA = questionsA.length - 1;
           idxB = questionsB.length - 1;
           idxC = 0;

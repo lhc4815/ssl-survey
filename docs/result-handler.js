@@ -181,13 +181,25 @@ function finishSurvey(params) {
   }
 
   // B) 개인 정보 수집 (방어적 코딩)
-  const nameVal = (nameIn && nameIn.value) ? nameIn.value : 'N/A';
+  
+  // TEST 모드에서 직접 복사된 폼 데이터가 있는지 확인
+  const hasFormData = params.formData && typeof params.formData === 'object';
+  if (hasFormData) {
+    console.log('TEST 모드: 직접 복사된 폼 데이터 사용:', params.formData);
+  }
+  
+  const nameVal = hasFormData ? params.formData.name : 
+                  (nameIn && nameIn.value) ? nameIn.value : 'N/A';
+  
   const genderMap = { '남': 0, '여': 1, '기타': 2 };
   
   // genderIn 안전 참조
   let genderCode = 2; // 기본값
   try {
-    if (params.genderIn && params.genderIn.value) {
+    if (hasFormData) {
+      // formData에서 직접 값 사용
+      genderCode = genderMap[params.formData.gender] || 2;
+    } else if (params.genderIn && params.genderIn.value) {
       genderCode = genderMap[params.genderIn.value] || 2;
     }
   } catch (e) {
@@ -197,7 +209,15 @@ function finishSurvey(params) {
   // regionIn 안전 참조
   let regionCode = -1; // 기본값
   try {
-    if (regionIn && regionIn.options && regionIn.selectedOptions) {
+    if (hasFormData) {
+      // formData에서 직접 지역 정보 사용
+      const regionName = params.formData.region;
+      console.log('직접 복사된 지역 정보:', regionName);
+      
+      // 기본적으로 서울은 0으로 설정
+      if (regionName === '서울 특별시') regionCode = 0;
+      
+    } else if (regionIn && regionIn.options && regionIn.selectedOptions) {
       const regionOpts = Array.from(regionIn.options).filter(o => o.value);
       const sortedRegions = regionOpts.map(o => o.text).sort((a,b) => a.localeCompare(b,'ko'));
       regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);

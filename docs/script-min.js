@@ -17,6 +17,8 @@ function finishSurveyLocal() {
   
   // DOM 요소 및 변수 존재 여부 확인 후 파라미터에 추가
   if (typeof nameIn !== 'undefined') params.nameIn = nameIn;
+  if (typeof schoolIn !== 'undefined') params.schoolIn = schoolIn;
+  if (typeof genderIn !== 'undefined') params.genderIn = genderIn;
   if (typeof currentCode !== 'undefined') params.currentCode = currentCode;
   if (typeof usedCodes !== 'undefined') params.usedCodes = usedCodes;
   if (typeof emailStatus !== 'undefined') params.emailStatus = emailStatus;
@@ -32,6 +34,54 @@ function finishSurveyLocal() {
   if (typeof bPills !== 'undefined') params.bPills = bPills;
   if (typeof tPills !== 'undefined') params.tPills = tPills;
   if (typeof regionIn !== 'undefined') params.regionIn = regionIn;
+  
+  // TEST 모드에서 폼 데이터 직접 복사
+  const isTestMode = document.getElementById('test-mode') && document.getElementById('test-mode').checked;
+  if (isTestMode) {
+    console.log('TEST 모드: 폼 데이터를 명시적으로 복사합니다.');
+    try {
+      // TEST 모드에서는 직접 값을 설정하여 N/A 방지
+      if (nameIn && nameIn.value) {
+        console.log('이름 설정:', nameIn.value);
+      }
+      if (schoolIn && schoolIn.value) {
+        console.log('학교 설정:', schoolIn.value);
+      }
+      if (genderIn && genderIn.value) {
+        console.log('성별 설정:', genderIn.value);
+      }
+      if (regionIn && regionIn.value) {
+        console.log('지역 설정:', regionIn.value);
+      }
+      
+      // 선택된 B등급 과목수와 진학희망고교 인덱스 검색
+      let bIndex = -1, tIndex = -1;
+      
+      if (Array.isArray(bPills)) {
+        bIndex = bPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+        console.log('B등급 과목수 인덱스:', bIndex);
+      }
+      
+      if (Array.isArray(tPills)) {
+        tIndex = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+        console.log('진학희망고교 인덱스:', tIndex);
+      }
+      
+      // 추가 메타데이터 저장
+      params.formData = {
+        name: nameIn?.value || '테스트 사용자',
+        school: schoolIn?.value || '테스트 학교',
+        gender: genderIn?.value || '남',
+        region: regionIn?.value || '서울 특별시',
+        bIndex: bIndex,
+        tIndex: tIndex
+      };
+      
+      console.log('폼 데이터 복사 완료:', params.formData);
+    } catch (e) {
+      console.error('폼 데이터 복사 중 오류:', e);
+    }
+  }
   
   // 함수 참조
   params.clearQuestionTimer = clearQuestionTimer;
