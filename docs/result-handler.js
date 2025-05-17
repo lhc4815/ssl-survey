@@ -166,41 +166,78 @@ function finishSurvey(params) {
     console.error('지역 정보 처리 오류:', e);
   }
 
-  // C) Type A 처리: 데이터+평균
-  const dataA = questionsA.map((q,i) => ({
-    연번: q.no,
-    '척도(대분류)': q.category,
-    응답: respA[i]
-  }));
+  // C) Type A 처리: 데이터+평균 (방어적 코딩)
+  let dataA = [];
+  let categories = [];
+  let averages = [];
   
-  const categories = [...new Set(questionsA.map(q => q.category))];
-  const averages = categories.map(cat => {
-    const vals = questionsA
-      .map((q,i) => q.category === cat ? respA[i] : null)
-      .filter(v => v != null);
-    return {
-      '척도(대분류)': cat,
-      평균: vals.length ? vals.reduce((s,x) => s+x, 0) / vals.length : 0
-    };
-  });
+  try {
+    if (Array.isArray(questionsA) && Array.isArray(respA)) {
+      dataA = questionsA.map((q, i) => ({
+        연번: q.no,
+        '척도(대분류)': q.category,
+        응답: respA[i]
+      }));
+      
+      categories = [...new Set(questionsA.filter(q => q && q.category).map(q => q.category))];
+      
+      averages = categories.map(cat => {
+        const vals = questionsA
+          .map((q, i) => (q && q.category === cat && i < respA.length) ? respA[i] : null)
+          .filter(v => v != null);
+        return {
+          '척도(대분류)': cat,
+          평균: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : 0
+        };
+      });
+    } else {
+      console.error('Type A 처리 실패: questionsA 또는 respA가 배열이 아님');
+    }
+  } catch (e) {
+    console.error('Type A 처리 중 오류:', e);
+  }
 
-  // D) Type B 처리: 정답비교+총점
-  const dataB = questionsB.map((q,i) => ({
-    연번: q.no,
-    응답: respB[i],
-    정답: q.correct,
-    정오: respB[i] === q.correct ? 'O' : 'X'
-  }));
-  const totalB = dataB.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+  // D) Type B 처리: 정답비교+총점 (방어적 코딩)
+  let dataB = [];
+  let totalB = 0;
+  
+  try {
+    if (Array.isArray(questionsB) && Array.isArray(respB)) {
+      dataB = questionsB.map((q, i) => ({
+        연번: q.no,
+        응답: respB[i],
+        정답: q.correct,
+        정오: respB[i] === q.correct ? 'O' : 'X'
+      }));
+      
+      totalB = dataB.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+    } else {
+      console.error('Type B 처리 실패: questionsB 또는 respB가 배열이 아님');
+    }
+  } catch (e) {
+    console.error('Type B 처리 중 오류:', e);
+  }
 
-  // E) Type C 처리: B와 동일
-  const dataC = questionsC.map((q,i) => ({
-    연번: q.no,
-    응답: respC[i],
-    정답: q.correct,
-    정오: respC[i] === q.correct ? 'O' : 'X'
-  }));
-  const totalC = dataC.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+  // E) Type C 처리: 정답비교+총점 (방어적 코딩)
+  let dataC = [];
+  let totalC = 0;
+  
+  try {
+    if (Array.isArray(questionsC) && Array.isArray(respC)) {
+      dataC = questionsC.map((q, i) => ({
+        연번: q.no,
+        응답: respC[i],
+        정답: q.correct,
+        정오: respC[i] === q.correct ? 'O' : 'X'
+      }));
+      
+      totalC = dataC.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+    } else {
+      console.error('Type C 처리 실패: questionsC 또는 respC가 배열이 아님');
+    }
+  } catch (e) {
+    console.error('Type C 처리 중 오류:', e);
+  }
 
   // F) DB 누적
   const STORAGE_KEY = 'surveyDB';
