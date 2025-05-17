@@ -116,6 +116,9 @@ function finishSurveyLocal() {
   params.questionsA = Array.isArray(localQuestionsA) ? localQuestionsA : [];
   params.questionsB = Array.isArray(localQuestionsB) ? localQuestionsB : [];
   params.questionsC = Array.isArray(localQuestionsC) ? localQuestionsC : [];
+  
+  // 디버깅을 위한 추가 로깅
+  console.log('TEST 모드 상태(할당 전):', isTestMode);
   if (typeof bPills !== 'undefined') params.bPills = bPills;
   if (typeof tPills !== 'undefined') params.tPills = tPills;
   if (typeof regionIn !== 'undefined') params.regionIn = regionIn;

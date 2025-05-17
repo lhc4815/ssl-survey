@@ -381,7 +381,27 @@ function finishSurvey(params) {
       console.log('formData에서 진학희망 인덱스 추출:', tValue);
     } else if (Array.isArray(tPills)) {
       tValue = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
-      console.log('tPills에서 진학희망 인덱스 추출:', tValue);
+      console.log('tPills에서 진학희망 인덱스 추출:', tValue, '선택된 요소:', 
+                 tPills.find(p => p && p.classList && p.classList.contains('selected'))?.dataset?.value);
+      
+      // 인덱스 값이 없으면 데이터셋에서 직접 매핑 시도
+      if (tValue === -1) {
+        const selectedPill = tPills.find(p => p && p.classList && p.classList.contains('selected'));
+        if (selectedPill && selectedPill.dataset && selectedPill.dataset.value) {
+          const mappedValue = schoolTypeMap[selectedPill.dataset.value];
+          if (typeof mappedValue === 'number') {
+            tValue = mappedValue;
+            console.log('데이터셋에서 진학희망 값 매핑:', selectedPill.dataset.value, '->', tValue);
+          }
+        }
+      }
+    }
+    
+    // 강제 할당 (테스트)
+    if (isTestMode && tValue === -1) {
+      // 테스트 모드에서는 랜덤값 할당 (0-3)
+      tValue = Math.floor(Math.random() * 4);
+      console.log('TEST 모드: 진학희망고교 임의 할당:', tValue);
     }
   } catch (e) {
     console.error('진학희망 정보 처리 오류:', e);

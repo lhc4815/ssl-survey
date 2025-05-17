@@ -1,9 +1,16 @@
 // mailer.js
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 // .env 파일 불러오기
 dotenv.config();
+
+// 파일 경로 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // SMTP 설정 객체
 const transporter = nodemailer.createTransport({
@@ -71,9 +78,9 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
   
   try {
     // XLSX 파일도 함께 첨부 (docs/Questions.xlsx 파일 읽기)
-    const fs = require('fs');
-    const path = require('path');
-    const xlsxPath = path.join(process.cwd(), 'docs', 'Questions.xlsx');
+    const xlsxPath = path.join(__dirname, 'docs', 'Questions.xlsx');
+    
+    console.log('엑셀 파일 경로 검사:', xlsxPath);
     
     if (fs.existsSync(xlsxPath)) {
       const xlsxBuffer = fs.readFileSync(xlsxPath);
@@ -83,7 +90,20 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
       });
       console.log('XLSX 파일 첨부 성공:', xlsxPath);
     } else {
-      console.warn('XLSX 파일을 찾을 수 없음:', xlsxPath);
+      // 상위 디렉토리 시도
+      const altPath = path.join(__dirname, '../docs', 'Questions.xlsx');
+      console.log('대체 경로 시도:', altPath);
+      
+      if (fs.existsSync(altPath)) {
+        const xlsxBuffer = fs.readFileSync(altPath);
+        attachments.push({
+          filename: `Questions.xlsx`,
+          content: xlsxBuffer
+        });
+        console.log('XLSX 파일 첨부 성공 (대체 경로):', altPath);
+      } else {
+        console.warn('XLSX 파일을 찾을 수 없음, 두 경로 모두 실패:', xlsxPath, altPath);
+      }
     }
   } catch (err) {
     console.error('XLSX 파일 첨부 오류:', err);
