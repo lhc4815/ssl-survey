@@ -37,7 +37,27 @@ function finishSurveyLocal() {
   params.regionIn = localRegionIn;
   params.emailStatus = localEmailStatus;
   // 코드 관련 정보 처리
-  params.currentCode = currentCode || '';
+  params.currentCode = typeof currentCode !== 'undefined' ? currentCode : '';
+  
+  // 코드 값 직접 가져오기 (전역 변수에 없는 경우)
+  if (!params.currentCode) {
+    try {
+      // 코드 입력 필드에서 값 가져오기 시도
+      const codeInput = document.getElementById('stu-code');
+      if (codeInput && codeInput.value) {
+        params.currentCode = codeInput.value.trim();
+        console.log('코드 입력 필드에서 값 가져옴:', params.currentCode);
+      } else {
+        // 저장된 사용자 코드가 없으면 TEST 모드에서 자동 생성
+        if (isTestMode) {
+          params.currentCode = 'TEST' + new Date().getTime().toString().slice(-4);
+          console.log('TEST 모드용 임시 코드 생성:', params.currentCode);
+        }
+      }
+    } catch (e) {
+      console.error('코드 값 가져오기 오류:', e);
+    }
+  }
   
   // usedCodes가 이 시점에 undefined면 localStorage에서 직접 로드
   if (typeof usedCodes === 'undefined' || !Array.isArray(usedCodes)) {
@@ -159,7 +179,7 @@ function finishSurveyLocal() {
         학생성명: (localNameIn && localNameIn.value) ? localNameIn.value : 'N/A',
         출신학교: (localSchoolIn && localSchoolIn.value) ? localSchoolIn.value : 'N/A',
         설문완료일시: completeAt,
-        사용한코드: currentCode || 'UNKNOWN'
+        사용한코드: params.currentCode || 'UNKNOWN'
       };
       
       surveyDB.push(row);
