@@ -61,10 +61,33 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
     <p>감사합니다.</p>
   `;
 
-  const attachments = [{
+  const attachments = [];
+  
+  // JSON 파일 첨부
+  attachments.push({
     filename: `survey_result_${studentName}.${fileType}`,
     content: fileBuffer
-  }];
+  });
+  
+  try {
+    // XLSX 파일도 함께 첨부 (docs/Questions.xlsx 파일 읽기)
+    const fs = require('fs');
+    const path = require('path');
+    const xlsxPath = path.join(process.cwd(), 'docs', 'Questions.xlsx');
+    
+    if (fs.existsSync(xlsxPath)) {
+      const xlsxBuffer = fs.readFileSync(xlsxPath);
+      attachments.push({
+        filename: `Questions.xlsx`,
+        content: xlsxBuffer
+      });
+      console.log('XLSX 파일 첨부 성공:', xlsxPath);
+    } else {
+      console.warn('XLSX 파일을 찾을 수 없음:', xlsxPath);
+    }
+  } catch (err) {
+    console.error('XLSX 파일 첨부 오류:', err);
+  }
 
   return sendEmail({ to, subject, text, html, attachments });
 }

@@ -196,6 +196,7 @@ function finishSurvey(params) {
                   (nameIn && nameIn.value) ? nameIn.value : 'N/A';
   
   const genderMap = { '남': 0, '여': 1, '기타': 2 };
+  const schoolTypeMap = { '일반고': 0, '자사고': 1, '특목고': 2, '특성화고': 3 };
   
   // genderIn 안전 참조
   let genderCode = 0; // 기본값을 '남'(0)으로 변경
