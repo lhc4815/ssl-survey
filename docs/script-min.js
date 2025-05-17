@@ -12,6 +12,10 @@ function finishSurveyLocal() {
   if (typeof surveyDiv !== 'undefined' && surveyDiv) surveyDiv.classList.add('hidden');
   if (typeof resultDiv !== 'undefined' && resultDiv) resultDiv.classList.remove('hidden');
 
+  // TEST 모드 체크 (모든 코드에서 가장 먼저 확인)
+  const isTestMode = document.getElementById('test-mode') && document.getElementById('test-mode').checked;
+  console.log('TEST 모드 상태:', isTestMode ? '활성화 ✓' : '비활성화 ✗');
+  
   // DOM 요소 가져오기 (오류 방지를 위해 직접 DOM에서 참조)
   const localNameIn = document.getElementById('name');
   const localSchoolIn = document.getElementById('school');
@@ -88,28 +92,35 @@ function finishSurveyLocal() {
   if (typeof sendEmailBtn !== 'undefined') params.sendEmailBtn = sendEmailBtn;
   if (typeof downloadLink !== 'undefined') params.downloadLink = downloadLink;
   if (typeof usedDL !== 'undefined') params.usedDL = usedDL;
-  // 설문 응답 및 문항 데이터 - 주의: 반드시 배열 형태로 전달해야 함
-  params.respA = Array.isArray(respA) ? respA : [];
-  params.respB = Array.isArray(respB) ? respB : [];
-  params.respC = Array.isArray(respC) ? respC : [];
-  params.questionsA = Array.isArray(questionsA) ? questionsA : [];
-  params.questionsB = Array.isArray(questionsB) ? questionsB : [];
-  params.questionsC = Array.isArray(questionsC) ? questionsC : [];
+  // 설문 응답 및 문항 데이터 - 로컬 변수로 직접 정의
+  const localRespA = typeof respA !== 'undefined' ? respA : [];
+  const localRespB = typeof respB !== 'undefined' ? respB : [];
+  const localRespC = typeof respC !== 'undefined' ? respC : [];
+  const localQuestionsA = typeof questionsA !== 'undefined' ? questionsA : [];
+  const localQuestionsB = typeof questionsB !== 'undefined' ? questionsB : [];
+  const localQuestionsC = typeof questionsC !== 'undefined' ? questionsC : [];
   
-  console.log('설문 데이터 상태:', {
-    'respA 배열?': Array.isArray(respA),
-    'respB 배열?': Array.isArray(respB),
-    'respC 배열?': Array.isArray(respC),
-    'questionsA 배열?': Array.isArray(questionsA),
-    'questionsB 배열?': Array.isArray(questionsB),
-    'questionsC 배열?': Array.isArray(questionsC)
+  console.log('설문 데이터 생성 (로컬 변수):', {
+    'respA 길이': Array.isArray(localRespA) ? localRespA.length : 0,
+    'respB 길이': Array.isArray(localRespB) ? localRespB.length : 0,
+    'respC 길이': Array.isArray(localRespC) ? localRespC.length : 0,
+    'questionsA 길이': Array.isArray(localQuestionsA) ? localQuestionsA.length : 0,
+    'questionsB 길이': Array.isArray(localQuestionsB) ? localQuestionsB.length : 0,
+    'questionsC 길이': Array.isArray(localQuestionsC) ? localQuestionsC.length : 0
   });
+  
+  // 파라미터에 안전하게 할당
+  params.respA = Array.isArray(localRespA) ? localRespA : [];
+  params.respB = Array.isArray(localRespB) ? localRespB : [];
+  params.respC = Array.isArray(localRespC) ? localRespC : [];
+  params.questionsA = Array.isArray(localQuestionsA) ? localQuestionsA : [];
+  params.questionsB = Array.isArray(localQuestionsB) ? localQuestionsB : [];
+  params.questionsC = Array.isArray(localQuestionsC) ? localQuestionsC : [];
   if (typeof bPills !== 'undefined') params.bPills = bPills;
   if (typeof tPills !== 'undefined') params.tPills = tPills;
   if (typeof regionIn !== 'undefined') params.regionIn = regionIn;
   
   // TEST 모드에서 폼 데이터 직접 복사
-  const isTestMode = document.getElementById('test-mode') && document.getElementById('test-mode').checked;
   if (isTestMode) {
     console.log('TEST 모드: 폼 데이터를 명시적으로 복사합니다.');
     try {
