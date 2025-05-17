@@ -621,10 +621,27 @@ window.addEventListener('DOMContentLoaded', () => {
       });
 
       document.getElementById('finishSurveyBtn').onclick = () => {
+        console.log('설문 완료 버튼 클릭됨');
         for (let i = 6; i <= 9; i++) {
           if (!respC[i]) respC[i] = 'X';
         }
-        finishSurveyLocal();
+        try {
+          finishSurveyLocal();
+        } catch (error) {
+          console.error('설문 완료 처리 중 오류:', error);
+          alert('설문 완료 처리 중 오류가 발생했습니다: ' + error.message);
+          
+          // 기본 화면 전환 (최소한 다음 화면으로 넘어가게)
+          clearQuestionTimer();
+          clearInterval(totalInt);
+          surveyDiv.classList.add('hidden');
+          resultDiv.classList.remove('hidden');
+          
+          if (emailStatus) {
+            emailStatus.textContent = '오류가 발생했습니다. 결과가 저장되지 않았을 수 있습니다.';
+            emailStatus.style.color = '#D32F2F';
+          }
+        }
       };
 
       startQuestionTimer(C_Q_SEC * 4, () => {

@@ -1,5 +1,6 @@
 // 결과 처리 및 화면 전환 함수
 function finishSurveyLocal() {
+  console.log('설문 완료 함수 실행 시작');
   clearQuestionTimer();
   clearInterval(totalInt);
   surveyDiv.classList.add('hidden');
@@ -14,10 +15,63 @@ function finishSurveyLocal() {
   
   try {
     // 외부 모듈의 finishSurvey 함수 호출
-    finishSurvey(params);
+    if (typeof finishSurvey === 'function') {
+      console.log('finishSurvey 함수 호출 시도');
+      const result = finishSurvey(params);
+      console.log('설문 완료 처리 결과:', result);
+    } else {
+      console.error('finishSurvey 함수를 찾을 수 없습니다');
+      // 기본 처리: localStorage에 저장만 진행
+      const STORAGE_KEY = 'surveyDB';
+      let surveyDB = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      
+      const nextId = 'STU' + String(surveyDB.length + 1).padStart(4, '0');
+      const now = new Date();
+      const completeAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ` +
+                         `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      
+      const row = {
+        학생ID: nextId,
+        학생성명: nameIn.value || 'N/A',
+        설문완료일시: completeAt,
+        사용한코드: currentCode
+      };
+      
+      surveyDB.push(row);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
+      
+      if (emailStatus) {
+        emailStatus.textContent = '서버 연결 시도 중...';
+        
+        // 간단한 이메일 전송 시도
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: nameIn.value || 'N/A',
+            content: btoa(JSON.stringify(row)),
+            fileType: 'json'
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            emailStatus.textContent = '결과가 이메일로 전송되었습니다.';
+            emailStatus.style.color = '#2E7D32';
+          } else {
+            throw new Error(data.error || '이메일 전송 실패');
+          }
+        })
+        .catch(error => {
+          console.error('이메일 전송 오류:', error);
+          emailStatus.textContent = '이메일 전송 실패: ' + error.message;
+          emailStatus.style.color = '#D32F2F';
+        });
+      }
+    }
   } catch (err) {
     console.error("설문 완료 처리 중 오류:", err);
-    alert("설문 결과 저장 중 오류가 발생했습니다.");
+    alert("설문 결과 저장 중 오류가 발생했습니다: " + err.message);
   }
 }
 
