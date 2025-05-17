@@ -1013,10 +1013,19 @@ saveToUsedDataExcel(row, respA, respB, respC);
 
 // used_data.xlsx에 결과를 저장하는 함수
 function saveToUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses) {
-  // used_data.xlsx 파일 로드
+  // used_data.xlsx 파일 로드 시도
   fetch('used_data.xlsx')
-    .then(r => r.arrayBuffer())
+    .then(r => {
+      if (!r.ok) {
+        // 파일이 없는 경우 새로 생성
+        console.log('📊 used_data.xlsx 파일이 없어 새로 생성합니다.');
+        return createNewUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses);
+      }
+      return r.arrayBuffer();
+    })
     .then(buffer => {
+      if (!buffer) return; // createNewUsedDataExcel에서 처리된 경우 리턴
+      
       // 엑셀 파일 로드
       const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
       const sheetName = wb.SheetNames[0];
@@ -1093,8 +1102,91 @@ function saveToUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResp
       });
     })
     .catch(err => {
-      console.error('used_data.xlsx 파일 로드 실패:', err);
+      console.error('used_data.xlsx 처리 중 오류:', err);
+      // 오류 발생 시 새 파일 생성 시도
+      createNewUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses);
     });
+}
+
+// 새 used_data.xlsx 파일을 생성하는 함수
+function createNewUsedDataExcel(userData, typeAResponses, typeBResponses, typeCResponses) {
+  // 새 워크북 생성
+  const wb = XLSX.utils.book_new();
+  
+  // 헤더 생성
+  const headers = ['code', '학생성명', '출신학교', '성별', '거주지역', '서울거주구', '특수학교', 'B등급과목수', '진학희망고교'];
+  
+  // 1~260 숫자 컬럼 추가
+  const totalQuestions = typeAResponses.length + typeBResponses.length + typeCResponses.length;
+  for (let i = 1; i <= totalQuestions; i++) {
+    headers.push(String(i));
+  }
+  
+  // 새 행 데이터 생성
+  const newRow = {
+    'code': userData.사용한코드 || currentCode,
+    '학생성명': userData.학생성명,
+    '출신학교': userData.출신학교,
+    '성별': userData.성별,
+    '거주지역': userData.거주지역,
+    '서울거주구': userData.서울거주구,
+    '특수학교': userData.특수학교,
+    'B등급과목수': userData.B등급과목수,
+    '진학희망고교': userData.진학희망고교
+  };
+  
+  // Type A, B, C 응답을 1~260 컬럼에 추가
+  typeAResponses.forEach((resp, idx) => {
+    newRow[`${idx + 1}`] = resp;
+  });
+  
+  typeBResponses.forEach((resp, idx) => {
+    newRow[`${typeAResponses.length + idx + 1}`] = resp;
+  });
+  
+  typeCResponses.forEach((resp, idx) => {
+    newRow[`${typeAResponses.length + typeBResponses.length + idx + 1}`] = resp;
+  });
+  
+  // 시트 생성
+  const ws = XLSX.utils.json_to_sheet([newRow], { header: headers });
+  
+  // 워크북에 시트 추가
+  XLSX.utils.book_append_sheet(wb, ws, 'SurveyData');
+  
+  // 엑셀 파일 생성
+  const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  
+  // 서버에 저장
+  blob.arrayBuffer().then(buffer => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const b64 = btoa(binary);
+    
+    fetch('/api/save-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        filename: 'used_data.xlsx', 
+        content: b64 
+      })
+    })
+    .then(res => res.json())
+    .then(json => {
+      if (json.success) {
+        console.log('✓ 새 used_data.xlsx 파일 생성 및 저장 성공');
+      } else {
+        console.error('✗ 새 used_data.xlsx 파일 생성 실패:', json.error);
+      }
+    })
+    .catch(err => console.error('네트워크 오류:', err));
+  });
+  
+  return null; // 호출 체인 중단
 }
 
   /* ── 헬퍼 ───────────────────────────────────── */
