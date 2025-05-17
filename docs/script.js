@@ -322,10 +322,26 @@ window.addEventListener('DOMContentLoaded', () => {
         questionsC = XLSX.utils.sheet_to_json(wb.Sheets['Type C'])
           .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)'], correct: r['답'],}));
         
-        // 응답 배열 초기화
-        respA = Array(questionsA.length).fill(null);
-        respB = Array(questionsB.length).fill(null);
-        respC = Array(questionsC.length).fill(null);
+  // 응답 배열 초기화
+  respA = Array(questionsA.length).fill(null);
+  respB = Array(questionsB.length).fill(null);
+  respC = Array(questionsC.length).fill(null);
+  
+  // 사용자 입력 데이터를 전역 변수에 저장
+  window.userInputData = {
+    name: nameIn.value.trim(),
+    school: schoolIn.value.trim(),
+    gender: genderIn.value,
+    region: regionIn.value,
+    subRegion: subPills.find(p => p.classList.contains('selected'))?.dataset.value || '',
+    middleschool: middleSchoolValue,
+    bCount: bPills.find(p => p.classList.contains('selected'))?.dataset.value || '',
+    bIndex: bPills.findIndex(p => p.classList.contains('selected')),
+    schoolType: tPills.find(p => p.classList.contains('selected'))?.dataset.value || '',
+    tIndex: tPills.findIndex(p => p.classList.contains('selected'))
+  };
+  
+  console.log('사용자 입력 데이터 저장됨:', window.userInputData);
         
         // UI 전환 및 타이머 시작
         userForm.classList.add('hidden');

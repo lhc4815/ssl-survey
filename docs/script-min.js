@@ -142,48 +142,102 @@ function finishSurveyLocal() {
       }
       
       // TEST 모드에서 임의의 설문 응답 데이터 생성 (없을 경우)
-      if ((!Array.isArray(localRespA) || localRespA.length === 0) && Array.isArray(localQuestionsA)) {
+      if (Array.isArray(respA) && respA.length > 0) {
+        // 기존 respA 데이터가 있으면 사용
+        console.log('TEST 모드: 기존 Type A 응답 사용:', respA.length + '개');
+        params.respA = respA.slice();
+      } else if (Array.isArray(localQuestionsA) && localQuestionsA.length > 0) {
+        // 데이터가 없고 문항 데이터가 있으면 자동 생성
         console.log('TEST 모드: Type A 응답 자동 생성');
         params.respA = Array(localQuestionsA.length).fill(0).map(() => Math.floor(Math.random() * 5) + 1);
         console.log('자동 생성된 respA:', params.respA);
+      } else {
+        // 최후의 수단: 기본 길이 30의 배열 생성
+        console.log('TEST 모드: Type A 응답 기본값 생성 (30개)');
+        params.respA = Array(30).fill(0).map(() => Math.floor(Math.random() * 5) + 1);
       }
       
-      if ((!Array.isArray(localRespB) || localRespB.length === 0) && Array.isArray(localQuestionsB)) {
+      if (Array.isArray(respB) && respB.length > 0) {
+        // 기존 respB 데이터가 있으면 사용
+        console.log('TEST 모드: 기존 Type B 응답 사용:', respB.length + '개');
+        params.respB = respB.slice();
+      } else if (Array.isArray(localQuestionsB) && localQuestionsB.length > 0) {
+        // 데이터가 없고 문항 데이터가 있으면 자동 생성
         console.log('TEST 모드: Type B 응답 자동 생성');
         params.respB = Array(localQuestionsB.length).fill(0).map(() => 
           ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
         console.log('자동 생성된 respB:', params.respB);
+      } else {
+        // 최후의 수단: 기본 길이 10의 배열 생성
+        console.log('TEST 모드: Type B 응답 기본값 생성 (10개)');
+        params.respB = Array(10).fill(0).map(() => 
+          ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
       }
       
-      if ((!Array.isArray(localRespC) || localRespC.length === 0) && Array.isArray(localQuestionsC)) {
+      if (Array.isArray(respC) && respC.length > 0) {
+        // 기존 respC 데이터가 있으면 사용
+        console.log('TEST 모드: 기존 Type C 응답 사용:', respC.length + '개');
+        params.respC = respC.slice();
+      } else if (Array.isArray(localQuestionsC) && localQuestionsC.length > 0) {
+        // 데이터가 없고 문항 데이터가 있으면 자동 생성
         console.log('TEST 모드: Type C 응답 자동 생성');
         params.respC = Array(localQuestionsC.length).fill(0).map(() => 
           ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
         console.log('자동 생성된 respC:', params.respC);
+      } else {
+        // 최후의 수단: 기본 길이 10의 배열 생성
+        console.log('TEST 모드: Type C 응답 기본값 생성 (10개)');
+        params.respC = Array(10).fill(0).map(() => 
+          ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
       }
       
       // 선택된 B등급 과목수와 진학희망고교 인덱스 검색
       let bIndex = -1, tIndex = -1;
       
-      if (Array.isArray(bPills)) {
-        bIndex = bPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
-        console.log('B등급 과목수 인덱스:', bIndex);
+      try {
+        // document.querySelectorAll로 DOM에서 pill 요소들 직접 가져오기
+        const bPillsElements = Array.from(document.querySelectorAll('#bcount-group .pill'));
+        if (bPillsElements.length > 0) {
+          bIndex = bPillsElements.findIndex(p => p.classList.contains('selected'));
+          console.log('B등급 과목수 인덱스 (DOM에서 직접 검색):', bIndex);
+        }
+        
+        const tPillsElements = Array.from(document.querySelectorAll('#schooltype-group .pill'));
+        if (tPillsElements.length > 0) {
+          tIndex = tPillsElements.findIndex(p => p.classList.contains('selected'));
+          console.log('진학희망고교 인덱스 (DOM에서 직접 검색):', tIndex);
+        }
+      } catch (err) {
+        console.error('DOM에서 pills 요소 검색 중 오류:', err);
       }
       
-      if (Array.isArray(tPills)) {
-        tIndex = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
-        console.log('진학희망고교 인덱스:', tIndex);
+      // window.userInputData가 있으면 그 데이터 사용, 없으면 DOM에서 직접 읽기
+      if (window.userInputData && typeof window.userInputData === 'object') {
+        console.log('전역 변수에서 사용자 입력 데이터 사용:', window.userInputData);
+        params.formData = {
+          name: window.userInputData.name || localNameIn?.value || '테스트 사용자',
+          school: window.userInputData.school || localSchoolIn?.value || '테스트 학교',
+          gender: window.userInputData.gender || localGenderIn?.value || '남',
+          region: window.userInputData.region || localRegionIn?.value || '서울 특별시',
+          bIndex: typeof window.userInputData.bIndex === 'number' ? window.userInputData.bIndex : bIndex,
+          tIndex: typeof window.userInputData.tIndex === 'number' ? window.userInputData.tIndex : tIndex,
+          subRegion: window.userInputData.subRegion || '',
+          middleschool: window.userInputData.middleschool || '',
+          bCount: window.userInputData.bCount || '',
+          schoolType: window.userInputData.schoolType || ''
+        };
+      } else {
+        console.log('DOM에서 사용자 입력 데이터 직접 읽기');
+        // DOM에서 직접 읽기
+        params.formData = {
+          name: localNameIn?.value || '테스트 사용자',
+          school: localSchoolIn?.value || '테스트 학교',
+          gender: localGenderIn?.value || '남',
+          region: localRegionIn?.value || '서울 특별시',
+          bIndex: bIndex,
+          tIndex: tIndex
+        };
       }
-      
-      // 추가 메타데이터 저장
-      params.formData = {
-        name: localNameIn?.value || '테스트 사용자',
-        school: localSchoolIn?.value || '테스트 학교',
-        gender: localGenderIn?.value || '남',
-        region: localRegionIn?.value || '서울 특별시',
-        bIndex: bIndex,
-        tIndex: tIndex
-      };
       
       console.log('폼 데이터 복사 완료:', params.formData);
     } catch (e) {
