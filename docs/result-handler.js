@@ -432,7 +432,10 @@ function finishSurvey(params) {
       }
     }
     
-    // 강제 할당 (테스트)
+    // 테스트 모드 감지 (params에서 확인)
+    const isTestMode = hasFormData || (params && params.formData);
+    
+    // 강제 할당 (테스트 모드일 경우)
     if (isTestMode && tValue === -1) {
       // 테스트 모드에서는 랜덤값 할당 (0-3)
       tValue = Math.floor(Math.random() * 4);

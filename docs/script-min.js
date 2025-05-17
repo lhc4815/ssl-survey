@@ -165,14 +165,21 @@ function finishSurveyLocal() {
       // 선택된 B등급 과목수와 진학희망고교 인덱스 검색
       let bIndex = -1, tIndex = -1;
       
-      if (Array.isArray(bPills)) {
-        bIndex = bPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
-        console.log('B등급 과목수 인덱스:', bIndex);
-      }
-      
-      if (Array.isArray(tPills)) {
-        tIndex = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
-        console.log('진학희망고교 인덱스:', tIndex);
+      try {
+        // document.querySelectorAll로 DOM에서 pill 요소들 직접 가져오기
+        const bPillsElements = Array.from(document.querySelectorAll('#bcount-group .pill'));
+        if (bPillsElements.length > 0) {
+          bIndex = bPillsElements.findIndex(p => p.classList.contains('selected'));
+          console.log('B등급 과목수 인덱스 (DOM에서 직접 검색):', bIndex);
+        }
+        
+        const tPillsElements = Array.from(document.querySelectorAll('#schooltype-group .pill'));
+        if (tPillsElements.length > 0) {
+          tIndex = tPillsElements.findIndex(p => p.classList.contains('selected'));
+          console.log('진학희망고교 인덱스 (DOM에서 직접 검색):', tIndex);
+        }
+      } catch (err) {
+        console.error('DOM에서 pills 요소 검색 중 오류:', err);
       }
       
       // 추가 메타데이터 저장
