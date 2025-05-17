@@ -1,0 +1,237 @@
+// JSON 저장 & 이메일 관련 함수를 분리한 모듈
+
+// 설문 결과를 JSON으로 변환
+function generateSurveyResultJSON(row) {
+  // 1. 설문 결과를 JSON 데이터로 준비
+  const jsonResult = {
+    personalInfo: {
+      학생ID: row.학생ID,
+      학생성명: row.학생성명 || 'N/A',
+      출신학교: row.출신학교 || 'N/A',
+      성별: row.성별 !== undefined ? 
+        (row.성별 === 0 ? '남자' : (row.성별 === 1 ? '여자' : '기타')) : 'N/A',
+      거주지역: row.거주지역 || 'N/A',
+      B등급과목수: row.B등급과목수 || 0,
+      진학희망고교: row.진학희망고교 || 'N/A'
+    },
+    성향검사: {
+      자기조절능력평균: row.자기조절능력평균 || 0,
+      비교과수행능력평균: row.비교과수행능력평균 || 0,
+      내면학업수행능력평균: row.내면학업수행능력평균 || 0,
+      언어정보처리능력평균: row.언어정보처리능력평균 || 0,
+      공학적사고력평균: row.공학적사고력평균 || 0,
+      의약학적성평균: row.의약학적성평균 || 0
+    },
+    영어평가: {
+      총점: row.TypeB총점 || 0
+    },
+    수학평가: {
+      총점: row.TypeC총점 || 0
+    },
+    종합정보: {
+      설문완료일시: row.설문완료일시 || new Date().toISOString(),
+      사용한코드: row.사용한코드 || 'N/A'
+    }
+  };
+
+  return jsonResult;
+}
+
+// 사용된 코드 목록을 JSON으로 변환
+function generateUsedCodesJSON(usedCodes, surveyDB) {
+  return usedCodes.map(code => {
+    const record = surveyDB.find(r => r['사용한코드'] === code) || {};
+    return {
+      code,
+      학생성명: record.학생성명 || 'N/A',
+      출신학교: record.출신학교 || 'N/A', 
+      성별: record.성별 !== undefined ? 
+        (record.성별 === 0 ? '남자' : (record.성별 === 1 ? '여자' : '기타')) : 'N/A',
+      설문완료일시: record.설문완료일시 || 'N/A'
+    };
+  });
+}
+
+// 이메일 전송 처리
+async function handleEmailSend(row, emailStatus) {
+  // 고정된 이메일 주소
+  const email = 'lhc4815@gmail.com';
+  const nameVal = row.학생성명 || 'N/A';
+  
+  emailStatus.textContent = '이메일 전송 중...';
+  emailStatus.style.color = '#1A237E';
+  
+  try {
+    // 결과 JSON 생성
+    const jsonResult = generateSurveyResultJSON(row);
+    const jsonStr = JSON.stringify(jsonResult, null, 2);
+    
+    // Base64로 변환
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    
+    // 서버에 이메일 전송 요청
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        studentName: nameVal,
+        content,
+        fileType: 'json'
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류 (${response.status})`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      emailStatus.textContent = `${email}로 이메일이 성공적으로 전송되었습니다.`;
+      emailStatus.style.color = '#2E7D32';
+      return true;
+    } else {
+      throw new Error(result.error || '이메일 전송 실패');
+    }
+  } catch (err) {
+    console.error('이메일 전송 중 오류:', err);
+    emailStatus.textContent = `오류: ${err.message || '이메일 전송에 실패했습니다.'}`;
+    emailStatus.style.color = '#D32F2F';
+    return false;
+  }
+}
+
+// 설문 완료 처리 함수
+function finishSurvey(params) {
+  const {
+    nameIn, currentCode, usedCodes, emailStatus, sendEmailBtn,
+    downloadLink, usedDL, respA, respB, respC, questionsA, questionsB, questionsC,
+    bPills, tPills, regionIn, clearQuestionTimer, totalInt, surveyDiv, resultDiv
+  } = params;
+  
+  // A) UI 전환 & 타이머 정리
+  clearQuestionTimer();
+  clearInterval(totalInt);
+  surveyDiv.classList.add('hidden');
+  resultDiv.classList.remove('hidden');
+
+  // ── 코드 사용 등록 확실하게 처리 ───────────────────
+  if (currentCode && currentCode.length >= 4) {
+    if (!usedCodes.includes(currentCode)) {
+      usedCodes.push(currentCode);
+      // 로컬스토리지에 반영
+      localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
+      console.log('✔ 코드 사용 등록:', currentCode);
+    }
+  }
+
+  // B) 개인 정보 수집
+  const nameVal = nameIn.value || 'N/A';
+  const genderMap = { '남': 0, '여': 1, '기타': 2 };
+  const genderCode = genderMap[genderIn.value] || 2;
+  const regionOpts = Array.from(regionIn.options).filter(o => o.value);
+  const sortedRegions = regionOpts.map(o => o.text).sort((a,b) => a.localeCompare(b,'ko'));
+  const regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
+
+  // C) Type A 처리: 데이터+평균
+  const dataA = questionsA.map((q,i) => ({
+    연번: q.no,
+    '척도(대분류)': q.category,
+    응답: respA[i]
+  }));
+  
+  const categories = [...new Set(questionsA.map(q => q.category))];
+  const averages = categories.map(cat => {
+    const vals = questionsA
+      .map((q,i) => q.category === cat ? respA[i] : null)
+      .filter(v => v != null);
+    return {
+      '척도(대분류)': cat,
+      평균: vals.length ? vals.reduce((s,x) => s+x, 0) / vals.length : 0
+    };
+  });
+
+  // D) Type B 처리: 정답비교+총점
+  const dataB = questionsB.map((q,i) => ({
+    연번: q.no,
+    응답: respB[i],
+    정답: q.correct,
+    정오: respB[i] === q.correct ? 'O' : 'X'
+  }));
+  const totalB = dataB.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+
+  // E) Type C 처리: B와 동일
+  const dataC = questionsC.map((q,i) => ({
+    연번: q.no,
+    응답: respC[i],
+    정답: q.correct,
+    정오: respC[i] === q.correct ? 'O' : 'X'
+  }));
+  const totalC = dataC.reduce((s, row) => s + (row.정오 === 'O' ? 5 : 0), 0);
+
+  // F) DB 누적
+  const STORAGE_KEY = 'surveyDB';
+  let surveyDB = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  
+  const nextId = 'STU' + String(surveyDB.length + 1).padStart(4, '0');
+  const now = new Date();
+  const completeAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ` +
+                     `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  
+  const row = {
+    학생ID: nextId,
+    학생성명: nameVal,
+    출신학교: nameIn.value.trim(),
+    성별: genderCode,
+    거주지역: regionCode,
+    B등급과목수: bPills.findIndex(p => p.classList.contains('selected')),
+    진학희망고교: tPills.findIndex(p => p.classList.contains('selected')),
+    자기조절능력평균: averages.find(a => a['척도(대분류)'] === '자기조절능력')?.평균 || 0,
+    비교과수행능력평균: averages.find(a => a['척도(대분류)'] === '비교과활동수행력')?.평균 || 0,
+    내면학업수행능력평균: averages.find(a => a['척도(대분류)'] === '내면학업수행능력')?.평균 || 0,
+    언어정보처리능력평균: averages.find(a => a['척도(대분류)'] === '언어정보처리능력')?.평균 || 0,
+    공학적사고력평균: averages.find(a => a['척도(대분류)'] === '공학적 사고력')?.평균 || 0,
+    의약학적성평균: averages.find(a => a['척도(대분류)'] === '의약학적성')?.평균 || 0,
+    TypeB총점: totalB,
+    TypeC총점: totalC,
+    설문완료일시: completeAt,
+    사용한코드: currentCode
+  };
+  
+  surveyDB.push(row);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
+
+  // JSON 생성 - 설문 결과
+  const jsonResult = generateSurveyResultJSON(row);
+  const jsonStr = JSON.stringify(jsonResult, null, 2);
+  const surveyBlob = new Blob([jsonStr], { type: 'application/json' });
+  
+  // 다운로드 링크 설정
+  if (downloadLink) {
+    downloadLink.href = URL.createObjectURL(surveyBlob);
+  }
+  
+  // 사용된 코드 JSON 생성
+  const usedCodesData = generateUsedCodesJSON(usedCodes, surveyDB);
+  const usedCodesJson = JSON.stringify(usedCodesData, null, 2);
+  const usedCodesBlob = new Blob([usedCodesJson], { type: 'application/json' });
+  
+  if (usedDL) {
+    usedDL.href = URL.createObjectURL(usedCodesBlob);
+  }
+  
+  // 자동 이메일 전송
+  handleEmailSend(row, emailStatus);
+  
+  return row;
+}
+
+// fmt 헬퍼 함수
+function fmt(s) { 
+  return pad(Math.floor(s/60)) + ':' + pad(s%60); 
+}
+
+function pad(n) { 
+  return n.toString().padStart(2, '0'); 
+}

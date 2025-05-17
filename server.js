@@ -1,10 +1,42 @@
 // server.js
 
 import { uploadFile } from './githubApi.js';
+import { sendSurveyResult } from './mailer.js';
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
-const express = require('express');
-const app     = express();
+// .env 파일 로드
+dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// JSON 바디 파싱: Base64 전송용으로 최대 50MB 허용
+app.use(express.json({
+  limit: '50mb'
+}));
+
+// 데이터 저장 디렉터리 설정
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// 정적 파일 제공
+app.use(express.static(path.join(__dirname, 'docs')));
+
+// 루트 경로에 대한 명시적 핸들러 추가 (simple-server.js에서 가져옴)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'docs', 'index.html'));
+});
+
+// GitHub 업로드 API
 app.post('/api/upload', async (req, res) => {
   const { path, content, commitMessage } = req.body;
   try {
@@ -16,53 +48,7 @@ app.post('/api/upload', async (req, res) => {
   }
 });
 
-const fs      = require('fs');
-const path    = require('path');
-const PORT    = process.env.PORT || 3000;
-
-// JSON 바디 파싱: Base64 전송용으로 최대 50MB 허용
-app.use(express.json({
-  limit: '50mb'
-}));
-
-
-// 데이터 저장 디렉터리 설정
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-app.use(express.static(path.join(__dirname, 'docs')));  // 실제 경로로 조정
-
-
-// ─── 설문 결과 저장 API ─────────────────────────────
-// JSON 바디 최대 50MB 허용
-app.use(express.json({ limit: '50mb' }));
-
-// data 폴더가 없으면 생성
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-
-// ── 설문 엑셀 자동 저장 API ───────────────────────────────
-app.post('/api/save-excel', (req, res) => {
-  const { filename, content } = req.body;
-  if (!filename || !content) {
-    return res.status(400).json({ success: false, error: 'filename 및 content 필요' });
-  }
-
-  const filePath = path.join(DATA_DIR, filename);
-  try {
-    const buffer = Buffer.from(content, 'base64');
-    fs.writeFileSync(filePath, buffer);
-    return res.json({ success: true, file: filePath });
-  } catch (err) {
-    console.error('[/api/save-excel] 오류', err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-
-// ─── 사용된 코드 저장 API ─────────────────────────────
-// ─── 엑셀 자동 저장 API ─────────────────────────────────────
+// 엑셀 자동 저장 API
 app.post('/api/save-excel', (req, res) => {
   const { filename, content } = req.body;
   if (!filename || !content) {
@@ -93,10 +79,40 @@ app.post('/api/save-excel', (req, res) => {
   }
 });
 
+// 설문 결과 이메일 전송 API
+app.post('/api/send-email', async (req, res) => {
+  const { email, studentName, content, fileType = 'xlsx' } = req.body;
+  
+  // 고정된 이메일 주소 사용
+  const targetEmail = 'lhc4815@gmail.com';
+  
+  if (!studentName || !content) {
+    return res.status(400).json({
+      success: false,
+      error: '학생 이름과 파일 내용이 필요합니다.'
+    });
+  }
 
-// ─── (선택) 정적 파일 제공 ─────────────────────────────
-// 클라이언트(index.html, script.js, .xlsx 등)가 docs/ 폴더에 있을 경우:
-app.use(express.static(path.join(__dirname, 'docs')));
+  try {
+    // Base64 → Buffer
+    const fileBuffer = Buffer.from(content, 'base64');
+    
+    // 이메일 전송
+    const result = await sendSurveyResult(targetEmail, studentName, fileBuffer, fileType);
+    
+    res.json({ 
+      success: true, 
+      messageId: result.messageId,
+      message: `${targetEmail}로 이메일이 성공적으로 전송되었습니다.` 
+    });
+  } catch (err) {
+    console.error('[/api/send-email] 이메일 전송 중 오류:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`▶ Server running at http://localhost:${PORT}`);
