@@ -1,10 +1,16 @@
+// clearQuestionTimer 함수 정의
+function clearQuestionTimer() {
+  if (typeof qInt !== 'undefined') clearInterval(qInt);
+  if (typeof qTO !== 'undefined') clearTimeout(qTO);
+}
+
 // 결과 처리 및 화면 전환 함수
 function finishSurveyLocal() {
   console.log('설문 완료 함수 실행 시작');
   clearQuestionTimer();
-  clearInterval(totalInt);
-  surveyDiv.classList.add('hidden');
-  resultDiv.classList.remove('hidden');
+  if (typeof totalInt !== 'undefined') clearInterval(totalInt);
+  if (typeof surveyDiv !== 'undefined' && surveyDiv) surveyDiv.classList.add('hidden');
+  if (typeof resultDiv !== 'undefined' && resultDiv) resultDiv.classList.remove('hidden');
 
   // 외부 모듈의 finishSurvey 함수 호출
   const params = {
