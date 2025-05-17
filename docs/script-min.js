@@ -211,15 +211,33 @@ function finishSurveyLocal() {
         console.error('DOM에서 pills 요소 검색 중 오류:', err);
       }
       
-      // 추가 메타데이터 저장
-      params.formData = {
-        name: localNameIn?.value || '테스트 사용자',
-        school: localSchoolIn?.value || '테스트 학교',
-        gender: localGenderIn?.value || '남',
-        region: localRegionIn?.value || '서울 특별시',
-        bIndex: bIndex,
-        tIndex: tIndex
-      };
+      // window.userInputData가 있으면 그 데이터 사용, 없으면 DOM에서 직접 읽기
+      if (window.userInputData && typeof window.userInputData === 'object') {
+        console.log('전역 변수에서 사용자 입력 데이터 사용:', window.userInputData);
+        params.formData = {
+          name: window.userInputData.name || localNameIn?.value || '테스트 사용자',
+          school: window.userInputData.school || localSchoolIn?.value || '테스트 학교',
+          gender: window.userInputData.gender || localGenderIn?.value || '남',
+          region: window.userInputData.region || localRegionIn?.value || '서울 특별시',
+          bIndex: typeof window.userInputData.bIndex === 'number' ? window.userInputData.bIndex : bIndex,
+          tIndex: typeof window.userInputData.tIndex === 'number' ? window.userInputData.tIndex : tIndex,
+          subRegion: window.userInputData.subRegion || '',
+          middleschool: window.userInputData.middleschool || '',
+          bCount: window.userInputData.bCount || '',
+          schoolType: window.userInputData.schoolType || ''
+        };
+      } else {
+        console.log('DOM에서 사용자 입력 데이터 직접 읽기');
+        // DOM에서 직접 읽기
+        params.formData = {
+          name: localNameIn?.value || '테스트 사용자',
+          school: localSchoolIn?.value || '테스트 학교',
+          gender: localGenderIn?.value || '남',
+          region: localRegionIn?.value || '서울 특별시',
+          bIndex: bIndex,
+          tIndex: tIndex
+        };
+      }
       
       console.log('폼 데이터 복사 완료:', params.formData);
     } catch (e) {
