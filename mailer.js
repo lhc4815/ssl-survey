@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import * as XLSX from 'xlsx';
 
 // .env 파일 불러오기
 dotenv.config();
@@ -77,36 +78,93 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
   });
   
   try {
-    // XLSX 파일도 함께 첨부 (docs/Questions.xlsx 파일 읽기)
-    const xlsxPath = path.join(__dirname, 'docs', 'Questions.xlsx');
+    // 먼저 JSON을 파싱하여 내용 확인
+    const jsonData = JSON.parse(fileBuffer.toString());
+    console.log('JSON 데이터 내용 확인:', Object.keys(jsonData));
     
-    console.log('엑셀 파일 경로 검사:', xlsxPath);
+    // 워크북 생성
+    const wb = XLSX.utils.book_new();
     
-    if (fs.existsSync(xlsxPath)) {
-      const xlsxBuffer = fs.readFileSync(xlsxPath);
-      attachments.push({
-        filename: `Questions.xlsx`,
-        content: xlsxBuffer
-      });
-      console.log('XLSX 파일 첨부 성공:', xlsxPath);
-    } else {
-      // 상위 디렉토리 시도
-      const altPath = path.join(__dirname, '../docs', 'Questions.xlsx');
-      console.log('대체 경로 시도:', altPath);
+    // 개인정보 워크시트 생성
+    if (jsonData.personalInfo) {
+      // 2차원 배열로 변환
+      const personalData = [
+        ['항목', '값'],
+        ['학생ID', jsonData.personalInfo.학생ID || ''],
+        ['학생성명', jsonData.personalInfo.학생성명 || ''],
+        ['출신학교', jsonData.personalInfo.출신학교 || ''],
+        ['성별', jsonData.personalInfo.성별 || ''],
+        ['거주지역', jsonData.personalInfo.거주지역 || ''],
+        ['B등급과목수', jsonData.personalInfo.B등급과목수 || ''],
+        ['진학희망고교', jsonData.personalInfo.진학희망고교 || '']
+      ];
       
-      if (fs.existsSync(altPath)) {
-        const xlsxBuffer = fs.readFileSync(altPath);
-        attachments.push({
-          filename: `Questions.xlsx`,
-          content: xlsxBuffer
-        });
-        console.log('XLSX 파일 첨부 성공 (대체 경로):', altPath);
-      } else {
-        console.warn('XLSX 파일을 찾을 수 없음, 두 경로 모두 실패:', xlsxPath, altPath);
-      }
+      const personalWs = XLSX.utils.aoa_to_sheet(personalData);
+      XLSX.utils.book_append_sheet(wb, personalWs, '개인정보');
     }
+    
+    // 성향검사 워크시트 생성
+    if (jsonData.성향검사) {
+      const aptitudeData = [
+        ['항목', '값'],
+        ['자기조절능력평균', jsonData.성향검사.자기조절능력평균 || 0],
+        ['비교과수행능력평균', jsonData.성향검사.비교과수행능력평균 || 0],
+        ['내면학업수행능력평균', jsonData.성향검사.내면학업수행능력평균 || 0],
+        ['언어정보처리능력평균', jsonData.성향검사.언어정보처리능력평균 || 0],
+        ['공학적사고력평균', jsonData.성향검사.공학적사고력평균 || 0],
+        ['의약학적성평균', jsonData.성향검사.의약학적성평균 || 0]
+      ];
+      
+      const aptitudeWs = XLSX.utils.aoa_to_sheet(aptitudeData);
+      XLSX.utils.book_append_sheet(wb, aptitudeWs, '성향검사');
+    }
+    
+    // 영어평가 워크시트 생성
+    if (jsonData.영어평가) {
+      const englishData = [
+        ['항목', '값'],
+        ['총점', jsonData.영어평가.총점 || 0]
+      ];
+      
+      const englishWs = XLSX.utils.aoa_to_sheet(englishData);
+      XLSX.utils.book_append_sheet(wb, englishWs, '영어평가');
+    }
+    
+    // 수학평가 워크시트 생성
+    if (jsonData.수학평가) {
+      const mathData = [
+        ['항목', '값'],
+        ['총점', jsonData.수학평가.총점 || 0]
+      ];
+      
+      const mathWs = XLSX.utils.aoa_to_sheet(mathData);
+      XLSX.utils.book_append_sheet(wb, mathWs, '수학평가');
+    }
+    
+    // 종합정보 워크시트 생성
+    if (jsonData.종합정보) {
+      const summaryData = [
+        ['항목', '값'],
+        ['설문완료일시', jsonData.종합정보.설문완료일시 || ''],
+        ['사용한코드', jsonData.종합정보.사용한코드 || '']
+      ];
+      
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, '종합정보');
+    }
+    
+    // 엑셀 파일을 버퍼로 변환
+    const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    // 엑셀 파일 첨부
+    attachments.push({
+      filename: `survey_result_${studentName}.xlsx`,
+      content: excelBuffer
+    });
+    
+    console.log('엑셀 파일 생성 및 첨부 성공');
   } catch (err) {
-    console.error('XLSX 파일 첨부 오류:', err);
+    console.error('엑셀 파일 생성 및 첨부 오류:', err);
   }
 
   return sendEmail({ to, subject, text, html, attachments });
