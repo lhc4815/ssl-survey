@@ -117,6 +117,26 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
       
       const aptitudeWs = XLSX.utils.aoa_to_sheet(aptitudeData);
       XLSX.utils.book_append_sheet(wb, aptitudeWs, '성향검사');
+      
+      // 성향검사 상세 응답 워크시트 추가
+      if (jsonData.성향검사.상세응답 && Array.isArray(jsonData.성향검사.상세응답)) {
+        // 상세 응답 헤더 생성
+        const detailHeader = ['연번', '척도', '응답'];
+        
+        // 상세 응답 데이터 생성
+        const detailRows = jsonData.성향검사.상세응답.map(item => [
+          item.연번,
+          item.척도,
+          item.응답
+        ]);
+        
+        // 모든 행 합치기 (헤더 + 데이터)
+        const allRows = [detailHeader, ...detailRows];
+        
+        // 워크시트 생성 및 추가
+        const detailWs = XLSX.utils.aoa_to_sheet(allRows);
+        XLSX.utils.book_append_sheet(wb, detailWs, '성향검사-상세응답');
+      }
     }
     
     // 영어평가 워크시트 생성
@@ -128,6 +148,27 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
       
       const englishWs = XLSX.utils.aoa_to_sheet(englishData);
       XLSX.utils.book_append_sheet(wb, englishWs, '영어평가');
+      
+      // 영어평가 상세 응답 워크시트 추가
+      if (jsonData.영어평가.상세응답 && Array.isArray(jsonData.영어평가.상세응답)) {
+        // 상세 응답 헤더 생성
+        const detailHeader = ['연번', '응답', '정답', '정오'];
+        
+        // 상세 응답 데이터 생성
+        const detailRows = jsonData.영어평가.상세응답.map(item => [
+          item.연번,
+          item.응답,
+          item.정답,
+          item.정오
+        ]);
+        
+        // 모든 행 합치기 (헤더 + 데이터)
+        const allRows = [detailHeader, ...detailRows];
+        
+        // 워크시트 생성 및 추가
+        const detailWs = XLSX.utils.aoa_to_sheet(allRows);
+        XLSX.utils.book_append_sheet(wb, detailWs, '영어평가-상세응답');
+      }
     }
     
     // 수학평가 워크시트 생성
@@ -139,6 +180,27 @@ export async function sendSurveyResult(to, studentName, fileBuffer, fileType = '
       
       const mathWs = XLSX.utils.aoa_to_sheet(mathData);
       XLSX.utils.book_append_sheet(wb, mathWs, '수학평가');
+      
+      // 수학평가 상세 응답 워크시트 추가
+      if (jsonData.수학평가.상세응답 && Array.isArray(jsonData.수학평가.상세응답)) {
+        // 상세 응답 헤더 생성
+        const detailHeader = ['연번', '응답', '정답', '정오'];
+        
+        // 상세 응답 데이터 생성
+        const detailRows = jsonData.수학평가.상세응답.map(item => [
+          item.연번,
+          item.응답,
+          item.정답,
+          item.정오
+        ]);
+        
+        // 모든 행 합치기 (헤더 + 데이터)
+        const allRows = [detailHeader, ...detailRows];
+        
+        // 워크시트 생성 및 추가
+        const detailWs = XLSX.utils.aoa_to_sheet(allRows);
+        XLSX.utils.book_append_sheet(wb, detailWs, '수학평가-상세응답');
+      }
     }
     
     // 종합정보 워크시트 생성
