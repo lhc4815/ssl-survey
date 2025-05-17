@@ -39,17 +39,34 @@ function generateSurveyResultJSON(row) {
 
 // 사용된 코드 목록을 JSON으로 변환
 function generateUsedCodesJSON(usedCodes, surveyDB) {
-  return usedCodes.map(code => {
-    const record = surveyDB.find(r => r['사용한코드'] === code) || {};
-    return {
-      code,
-      학생성명: record.학생성명 || 'N/A',
-      출신학교: record.출신학교 || 'N/A', 
-      성별: record.성별 !== undefined ? 
-        (record.성별 === 0 ? '남자' : (record.성별 === 1 ? '여자' : '기타')) : 'N/A',
-      설문완료일시: record.설문완료일시 || 'N/A'
-    };
-  });
+  // 방어적 코딩: usedCodes가 undefined거나 배열이 아닌 경우 빈 배열 반환
+  if (!Array.isArray(usedCodes)) {
+    console.error('generateUsedCodesJSON: usedCodes가 배열이 아닙니다', usedCodes);
+    return [];
+  }
+  
+  // surveyDB가 배열이 아닌 경우 빈 배열로 처리
+  if (!Array.isArray(surveyDB)) {
+    console.error('generateUsedCodesJSON: surveyDB가 배열이 아닙니다', surveyDB);
+    surveyDB = [];
+  }
+  
+  try {
+    return usedCodes.map(code => {
+      const record = surveyDB.find(r => r && r['사용한코드'] === code) || {};
+      return {
+        code,
+        학생성명: record.학생성명 || 'N/A',
+        출신학교: record.출신학교 || 'N/A', 
+        성별: record.성별 !== undefined ? 
+          (record.성별 === 0 ? '남자' : (record.성별 === 1 ? '여자' : '기타')) : 'N/A',
+        설문완료일시: record.설문완료일시 || 'N/A'
+      };
+    });
+  } catch (error) {
+    console.error('코드 목록 JSON 변환 중 오류:', error);
+    return [];
+  }
 }
 
 // 이메일 전송 처리
