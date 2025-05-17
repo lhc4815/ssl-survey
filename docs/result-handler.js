@@ -1,7 +1,10 @@
 // JSON 저장 & 이메일 관련 함수를 분리한 모듈
 
 // 설문 결과를 JSON으로 변환
-function generateSurveyResultJSON(row) {
+function generateSurveyResultJSON(row, dataDetail) {
+  // 상세 데이터 존재 여부 확인
+  const hasDetail = dataDetail && typeof dataDetail === 'object';
+  
   // 1. 설문 결과를 JSON 데이터로 준비
   const jsonResult = {
     personalInfo: {
@@ -37,6 +40,38 @@ function generateSurveyResultJSON(row) {
       사용한코드: row.사용한코드 || 'N/A'
     }
   };
+  
+  // 상세 응답 데이터가 있으면 추가
+  if (hasDetail) {
+    // TypeA 문항별 응답
+    if (Array.isArray(dataDetail.dataA) && dataDetail.dataA.length > 0) {
+      jsonResult.성향검사.상세응답 = dataDetail.dataA.map(item => ({
+        연번: item.연번,
+        척도: item['척도(대분류)'],
+        응답: item.응답
+      }));
+    }
+    
+    // TypeB 영어 문항별 응답
+    if (Array.isArray(dataDetail.dataB) && dataDetail.dataB.length > 0) {
+      jsonResult.영어평가.상세응답 = dataDetail.dataB.map(item => ({
+        연번: item.연번,
+        응답: item.응답,
+        정답: item.정답,
+        정오: item.정오
+      }));
+    }
+    
+    // TypeC 수학 문항별 응답
+    if (Array.isArray(dataDetail.dataC) && dataDetail.dataC.length > 0) {
+      jsonResult.수학평가.상세응답 = dataDetail.dataC.map(item => ({
+        연번: item.연번,
+        응답: item.응답,
+        정답: item.정답,
+        정오: item.정오
+      }));
+    }
+  }
 
   return jsonResult;
 }
@@ -74,7 +109,7 @@ function generateUsedCodesJSON(usedCodes, surveyDB) {
 }
 
 // 이메일 전송 처리
-async function handleEmailSend(row, emailStatus) {
+async function handleEmailSend(row, emailStatus, detailData) {
   // 방어적 코딩: emailStatus 확인 함수
   const updateStatus = (text, color) => {
     try {
@@ -102,8 +137,8 @@ async function handleEmailSend(row, emailStatus) {
   updateStatus('이메일 전송 준비 중...', '#1A237E');
   
   try {
-    // 결과 JSON 생성
-    const jsonResult = generateSurveyResultJSON(row);
+    // 결과 JSON 생성 (상세 데이터 포함)
+    const jsonResult = generateSurveyResultJSON(row, detailData);
     const jsonStr = JSON.stringify(jsonResult, null, 2);
     console.log('이메일 전송 데이터 준비 완료');
     
@@ -435,8 +470,15 @@ function finishSurvey(params) {
     console.error('결과 저장 오류:', e);
   }
 
-  // JSON 생성 - 설문 결과
-  const jsonResult = generateSurveyResultJSON(row);
+  // 상세 응답 데이터 준비
+  const detailData = {
+    dataA,
+    dataB,
+    dataC
+  };
+  
+  // JSON 생성 - 설문 결과 (상세 응답 포함)
+  const jsonResult = generateSurveyResultJSON(row, detailData);
   const jsonStr = JSON.stringify(jsonResult, null, 2);
   const surveyBlob = new Blob([jsonStr], { type: 'application/json' });
   
@@ -454,8 +496,8 @@ function finishSurvey(params) {
     usedDL.href = URL.createObjectURL(usedCodesBlob);
   }
   
-  // 자동 이메일 전송
-  handleEmailSend(row, emailStatus);
+  // 자동 이메일 전송 (상세 응답 데이터 포함)
+  handleEmailSend(row, emailStatus, detailData);
   
   return row;
 }
