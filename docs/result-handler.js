@@ -11,16 +11,20 @@ function generateSurveyResultJSON(row) {
       성별: row.성별 !== undefined ? 
         (row.성별 === 0 ? '남자' : (row.성별 === 1 ? '여자' : '기타')) : 'N/A',
       거주지역: row.거주지역 || 'N/A',
-      B등급과목수: row.B등급과목수 || 0,
-      진학희망고교: row.진학희망고교 || 'N/A'
+      B등급과목수: typeof row.B등급과목수 === 'number' ? row.B등급과목수 : 0,
+      진학희망고교: typeof row.진학희망고교 === 'number' ? 
+        (row.진학희망고교 === 0 ? '일반고' : 
+         row.진학희망고교 === 1 ? '자사고' : 
+         row.진학희망고교 === 2 ? '특목고' : 
+         row.진학희망고교 === 3 ? '특성화고' : '일반고') : '일반고'
     },
     성향검사: {
-      자기조절능력평균: row.자기조절능력평균 || 0,
-      비교과수행능력평균: row.비교과수행능력평균 || 0,
-      내면학업수행능력평균: row.내면학업수행능력평균 || 0,
-      언어정보처리능력평균: row.언어정보처리능력평균 || 0,
-      공학적사고력평균: row.공학적사고력평균 || 0,
-      의약학적성평균: row.의약학적성평균 || 0
+      자기조절능력평균: typeof row.자기조절능력평균 === 'number' ? parseFloat(row.자기조절능력평균.toFixed(2)) : 0,
+      비교과수행능력평균: typeof row.비교과수행능력평균 === 'number' ? parseFloat(row.비교과수행능력평균.toFixed(2)) : 0,
+      내면학업수행능력평균: typeof row.내면학업수행능력평균 === 'number' ? parseFloat(row.내면학업수행능력평균.toFixed(2)) : 0,
+      언어정보처리능력평균: typeof row.언어정보처리능력평균 === 'number' ? parseFloat(row.언어정보처리능력평균.toFixed(2)) : 0,
+      공학적사고력평균: typeof row.공학적사고력평균 === 'number' ? parseFloat(row.공학적사고력평균.toFixed(2)) : 0,
+      의약학적성평균: typeof row.의약학적성평균 === 'number' ? parseFloat(row.의약학적성평균.toFixed(2)) : 0
     },
     영어평가: {
       총점: row.TypeB총점 || 0

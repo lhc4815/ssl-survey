@@ -138,6 +138,27 @@ function finishSurveyLocal() {
         console.log('지역 설정:', localRegionIn.value);
       }
       
+      // TEST 모드에서 임의의 설문 응답 데이터 생성 (없을 경우)
+      if ((!Array.isArray(localRespA) || localRespA.length === 0) && Array.isArray(localQuestionsA)) {
+        console.log('TEST 모드: Type A 응답 자동 생성');
+        params.respA = Array(localQuestionsA.length).fill(0).map(() => Math.floor(Math.random() * 5) + 1);
+        console.log('자동 생성된 respA:', params.respA);
+      }
+      
+      if ((!Array.isArray(localRespB) || localRespB.length === 0) && Array.isArray(localQuestionsB)) {
+        console.log('TEST 모드: Type B 응답 자동 생성');
+        params.respB = Array(localQuestionsB.length).fill(0).map(() => 
+          ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
+        console.log('자동 생성된 respB:', params.respB);
+      }
+      
+      if ((!Array.isArray(localRespC) || localRespC.length === 0) && Array.isArray(localQuestionsC)) {
+        console.log('TEST 모드: Type C 응답 자동 생성');
+        params.respC = Array(localQuestionsC.length).fill(0).map(() => 
+          ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]);
+        console.log('자동 생성된 respC:', params.respC);
+      }
+      
       // 선택된 B등급 과목수와 진학희망고교 인덱스 검색
       let bIndex = -1, tIndex = -1;
       
