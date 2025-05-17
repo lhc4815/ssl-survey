@@ -114,6 +114,21 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`▶ Server running at http://localhost:${PORT}`);
+// 404 처리 - 모든 경로를 index.html로 라우팅 (SPA 지원)
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) {
+    return res.sendFile(path.join(__dirname, 'docs', 'index.html'));
+  }
+  next();
 });
+
+// 로컬 개발 환경에서만 서버 시작
+// Vercel에서는 이 부분이 실행되지 않음
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`▶ Server running at http://localhost:${PORT}`);
+  });
+}
+
+// Vercel 서버리스 함수로 내보내기
+export default app;
