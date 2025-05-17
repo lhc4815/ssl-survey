@@ -140,6 +140,8 @@
 
   <!-- 외부 스크립트 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="result-handler.js"></script>
+  <script src="script-min.js"></script>
   <script src="script.js" defer></script>
 </head>
 
@@ -274,30 +276,17 @@
       </nav>
     </div>
 
-    <!-- 3) 결과 화면 -->
-      <!-- 3) 결과 화면 -->
+  <!-- 3) 결과 화면 -->
   <div id="result" class="hidden">
-    <h2>감사합니다!</h2>
-    <!-- 기존 설문 결과 다운로드 링크 -->
-    <a id="download-link"
-       href="#"
-       download="survey_result.xlsx">
-      📥 최근 설문 다운로드
-    </a>
-    <!-- 추가: 사용된 코드 다운로드 링크 -->
-    <a id="used-download-link"
-       href="#"
-       download="used_stu_codes.xlsx"
-       style="margin-left:12px;">
-      📥 사용된 코드 다운로드
-    </a>
-    <!-- 추가: 모든 응답 데이터 다운로드 링크 -->
-    <a id="used-data-download-link"
-       href="used_data.xlsx"
-       download="used_data.xlsx"
-       style="margin-left:12px; display:inline-block; margin-top:12px; background: #F57F17; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 4px;">
-      📥 모든 응답 데이터 다운로드
-    </a>
+    <h2>설문 완료</h2>
+    
+    <div style="padding: 20px; background-color: #E8EAF6; border-radius: 8px; text-align: center;">
+      <h3 style="margin-top: 0; color: #303F9F;">감사합니다!</h3>
+      <p style="margin-bottom: 15px; font-size: 1.1em;">설문에 참여해 주셔서 감사합니다.</p>
+      <p style="margin-bottom: 15px;">설문 결과가 자동으로 전송되었습니다.</p>
+      
+      <div id="email-status" style="font-size: 0.9em; color: #1A237E; text-align: center; margin-top: 15px;"></div>
+    </div>
   </div>
 
   </div>
