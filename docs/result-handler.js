@@ -71,29 +71,51 @@ function generateUsedCodesJSON(usedCodes, surveyDB) {
 
 // 이메일 전송 처리
 async function handleEmailSend(row, emailStatus) {
+  // 방어적 코딩: emailStatus 확인 함수
+  const updateStatus = (text, color) => {
+    try {
+      // DOM 요소가 존재하는지 더 엄격하게 확인
+      if (emailStatus && typeof emailStatus === 'object' && 'textContent' in emailStatus) {
+        emailStatus.textContent = text;
+        if (color && typeof emailStatus.style === 'object') {
+          emailStatus.style.color = color;
+        }
+        console.log('상태 메시지 업데이트:', text);
+      } else {
+        // DOM 요소 대신 콘솔에 출력
+        console.log('이메일 상태:', text);
+      }
+    } catch (e) {
+      console.error('상태 업데이트 오류:', e);
+    }
+  };
+  
   // 고정된 이메일 주소
   const email = 'lhc4815@gmail.com';
-  const nameVal = row.학생성명 || 'N/A';
+  const nameVal = row && row.학생성명 ? row.학생성명 : 'N/A';
   
-  // emailStatus 안전하게 사용
-  try {
-    if (emailStatus) {
-      emailStatus.textContent = '이메일 전송 중...';
-      emailStatus.style.color = '#1A237E';
-    }
-  } catch (e) {
-    console.error('이메일 상태 업데이트 오류:', e);
-  }
+  // 초기 상태 설정
+  updateStatus('이메일 전송 준비 중...', '#1A237E');
   
   try {
     // 결과 JSON 생성
     const jsonResult = generateSurveyResultJSON(row);
     const jsonStr = JSON.stringify(jsonResult, null, 2);
+    console.log('이메일 전송 데이터 준비 완료');
     
     // Base64로 변환
-    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    let content;
+    try {
+      content = btoa(unescape(encodeURIComponent(jsonStr)));
+    } catch (e) {
+      console.error('Base64 인코딩 오류:', e);
+      content = btoa(JSON.stringify({error: '인코딩 오류', data: nameVal}));
+    }
+    
+    updateStatus('서버에 이메일 전송 요청 중...', '#1A237E');
     
     // 서버에 이메일 전송 요청
+    console.log('이메일 전송 API 호출 시작');
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,23 +127,24 @@ async function handleEmailSend(row, emailStatus) {
       })
     });
     
+    console.log('이메일 API 응답 받음:', response.status);
+    
     if (!response.ok) {
       throw new Error(`서버 응답 오류 (${response.status})`);
     }
     
     const result = await response.json();
+    console.log('이메일 전송 결과:', result);
     
     if (result.success) {
-      emailStatus.textContent = `${email}로 이메일이 성공적으로 전송되었습니다.`;
-      emailStatus.style.color = '#2E7D32';
+      updateStatus(`${email}로 이메일이 성공적으로 전송되었습니다.`, '#2E7D32');
       return true;
     } else {
       throw new Error(result.error || '이메일 전송 실패');
     }
   } catch (err) {
     console.error('이메일 전송 중 오류:', err);
-    emailStatus.textContent = `오류: ${err.message || '이메일 전송에 실패했습니다.'}`;
-    emailStatus.style.color = '#D32F2F';
+    updateStatus(`오류: ${err.message || '이메일 전송에 실패했습니다.'}`, '#D32F2F');
     return false;
   }
 }
