@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>SSL 학업순환구조(응답용)</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: #E3EAF5; font-family: Arial, sans-serif;
+    }
+    #container {
+      box-sizing: border-box;
+      width: 90vw; max-width: 900px; max-height: 90vh;
+      overflow-y: auto; padding: 24px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px); border-radius: 8px;
+    }
+    h2 {
+      margin-top: 0; font-size: 1.6em;
+      border-bottom: 2px solid #DDD; padding-bottom: 8px;
+      color: #1A237E;
+    }
+    .filter-row {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+    }
+    .filter-row input,
+    .filter-row select {
+      flex: 1; min-width: 150px;
+      padding: 8px 12px; font-size: 1em;
+      border: 1px solid #AAA; border-radius: 4px; background: #FFF;
+    }
+    .filter-group { margin-bottom: 16px; }
+    .filter-group span {
+      font-weight: bold; margin-right: 8px; color: #1A237E;
+    }
+    .pill {
+      display: inline-block; margin: 4px 6px 4px 0;
+      padding: 6px 14px; border: 1px solid #AAA;
+      border-radius: 16px; background: #FFF; cursor: pointer;
+      transition: .2s; user-select: none;
+    }
+    .pill.selected {
+      background: #C5CAE9; color: #1A237E; border-color: #3F51B5;
+    }
+    #start {
+      display: block; margin: 24px auto 0;
+      padding: 12px 32px; font-size: 1.1em;
+      background: #5C6BC0; color: #fff;
+      border: none; border-radius: 4px; cursor: pointer;
+      transition: .2s;
+    }
+    #start:disabled {
+      background: #D1C4E9; cursor: not-allowed;
+    }
+    #start:not(:disabled):hover {
+      background: #8291ea;
+    }
+    .hidden { display: none; }
+
+    /* — 이하 설문·결과 화면 스타일 — */
+    .timer-segment {
+      margin-bottom: 12px; font-size: 1em; color: #555;
+    }
+    #personal-info {
+      font-size: 0.8em; color: #2b196d;
+      margin-bottom: 12px; padding: 12px;
+      background: #ccd1eb; border: 1px solid #9092dc;
+      border-radius: 4px;
+    }
+    .question {
+      font-size: 1.4em; color: #1A237E; margin-bottom: 20px;
+    }
+    #total-timer, #segment-timer, #timer, #progress {
+      font-size: 1em; color: #eb8181; margin-bottom: 10px;
+    }
+    .answers {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+    }
+    .answers button {
+      flex: 1; min-width: 120px; padding: 16px; font-size: 1.2em;
+      border: 1px solid #888; border-radius: 4px; background: #FFF;
+      transition: .2s;
+    }
+    .answers button:hover {
+      background: #E8EAF6; border-color: #000000;
+    }
+    .answers button.selected {
+      background: #3F51B5; color: #fff; border-color: #160e67;
+    }
+    #hint {
+      font-size: 0.9em; color: #555; margin-bottom: 20px;
+      text-align: center;
+    }
+    #survey nav {
+      display: flex; gap: 10px; margin-top: 10px;
+    }
+    #survey nav #prev { display: none; }
+    #survey nav button {
+      flex: 1; padding: 12px 20px; font-size: 1.2em;
+      background: #C5CAE9; border: none;
+      border-radius: 4px; color: #1A237E; transition: .2s;
+    }
+    #survey nav button:disabled {
+      background: #D1C4E9; cursor: not-allowed;
+    }
+    #survey nav button:not(:disabled):hover {
+      background: #303F9F;
+    }
+    #download-link {
+      display: inline-block; margin-top: 20px; padding: 10px 20px;
+      background: #3949AB; color: #fff;
+      text-decoration: none; border-radius: 4px; transition: .2s;
+    }
+    #download-link:hover { background: #303F9F; }
+
+     /* 디버그 버튼 고정 위치 */
+    #dev-buttons {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+    #dev-buttons button {
+      margin-left: 6px;
+      padding: 6px 12px;
+      font-size: 0.9em;
+      border: none;
+      background: #FF8F00;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #dev-buttons button:hover {
+      background: #E65100;
+    }
+    
+  </style>
+
+  <!-- 외부 스크립트 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <!-- 디버그용: 최상단 고정 버튼 -->
+  <!-- <div id="dev-buttons">
+    <button id="dev-b">▶ Type B로 바로 이동</button>
+    <button id="dev-c">▶ Type C로 바로 이동</button>
+    <button id="dev-finish">▶ 설문 완료로 이동</button>
+  </div>-->
+
+  <div id="container">
+    <!-- ■ 7자리 코드 입력 폼: 페이지 진입 전 코드 검증용 -->
+    <div id="code-form">
+      <div style="text-align: center;">
+      <h2><strong>📥 사전에 안내 받은 7자리 코드를 입력해주세요!</strong></h2>
+      <!-- 7자리 코드 입력 필드 -->
+      <input type="text" id="stu-code" maxlength="7" placeholder="7자리 코드" />
+      <!-- 검증 버튼 -->
+      <button id="code-submit" type="button">확인</button>
+     
+      <div id="code-message" style="color:red; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- 1) 개인정보 입력 -->
+    <div id="user-form" class="hidden">
+      <div style="font-size:1.1em; background:#FFFDE7; padding:16px; border-left:6px solid #FBC02D; margin-bottom:16px; color:#5D4037;">
+        📋 본 설문은 총 3단계로 구성되어 있으며, 최대 소요 시간은 <strong>90분</strong>입니다.<br><br>
+        1️⃣ <strong>Type A</strong>: 성향 검사 – 총 240문항, 약 40분<br>
+        2️⃣ <strong>Type B</strong>: 영어 이해력 – 총 10문항, 약 10분<br>
+        3️⃣ <strong>Type C</strong>: 수학 문제 해결력 – 총 10문항, 약 40분<br><br>
+        모든 단계는 설문 시작 후 자동으로 이어집니다. 성실한 응답 부탁드립니다.
+      </div>
+
+      <h2>정보 입력</h2>
+      <div class="filter-row">
+        <input type="text" id="name" placeholder="1. 학생 성명" />
+        <input type="text" id="school" placeholder="2. 출신 학교" />
+        <select id="gender">
+          <option value="" disabled selected>3. 성별</option>
+          <option value="남">남성</option>
+          <option value="여">여성</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <div class="filter-row">
+        <select id="region">
+          <option value="" disabled selected>4. 거주지역</option>
+          <option value="강원도">강원도</option>
+          <option value="광주 광역시">광주 광역시</option>
+          <option value="경기도">경기도</option>
+          <option value="경상남도">경상남도</option>
+          <option value="경상북도">경상북도</option>
+          <option value="대구 광역시">대구 광역시</option>
+          <option value="대전 광역시">대전 광역시</option>
+          <option value="부산 광역시">부산 광역시</option>
+          <option value="서울 특별시">서울 특별시</option>
+          <option value="세종 특별자치시">세종 특별자치시</option>
+          <option value="울산 광역시">울산 광역시</option>
+          <option value="인천 광역시">인천 광역시</option>
+          <option value="전라남도">전라남도</option>
+          <option value="전라북도">전라북도</option>
+          <option value="제주 특별자치도">제주 특별자치도</option>
+          <option value="충청남도">충청남도</option>
+          <option value="충청북도">충청북도</option>
+        </select>
+      </div>
+
+      <div class="filter-group hidden" id="subregion-group">
+        <span>4-1. 서울 내 권역 선택</span>
+        <div class="pill" data-value="강남">강남</div>
+        <div class="pill" data-value="서초">서초</div>
+        <div class="pill" data-value="송파">송파</div>
+        <div class="pill" data-value="목동">목동</div>
+        <div class="pill" data-value="중계">중계</div>
+        <div class="pill" data-value="기타 지역">기타 지역</div>
+      </div>
+
+      <div class="filter-group hidden" id="middleschool-group">
+        <span>4-2. 출신 중학교 선택</span>
+        <select id="middleschool">
+          <option value="" disabled selected>중학교 선택</option>
+        </select>
+      </div>
+
+      <div class="filter-group" id="bcount-group">
+        <span>5. B등급 과목 수</span>
+        <div class="pill" data-value="0개">0개</div>
+        <div class="pill" data-value="1개">1개</div>
+        <div class="pill" data-value="2개~3개">2개~3개</div>
+        <div class="pill" data-value="5개 이하">5개 이하</div>
+        <div class="pill" data-value="5개 초과">5개 초과</div>
+      </div>
+
+      <div class="filter-group" id="schooltype-group">
+        <span>6. 진학 지망 고교 분류</span>
+        <div class="pill" data-value="전국단위자사고">전국단위자사고</div>
+        <div class="pill" data-value="지역자사고">지역자사고</div>
+        <div class="pill" data-value="외고">외고</div>
+        <div class="pill" data-value="국제고">국제고</div>
+        <div class="pill" data-value="서울형 자사고">서울형 자사고</div>
+        <div class="pill" data-value="일반고">일반고</div>
+      </div>
+
+      <button id="start" disabled>설문 시작</button>
+    </div>
+
+    <!-- 2) 설문 진행 화면 -->
+    <div id="survey" class="hidden">
+      <h2>설문 진행</h2>
+      <div class="timer-segment">• 전체 제한 시간: 90분</div>
+      <div class="timer-segment">• Type A: 240문항 → 40분 (10초/문항)</div>
+      <div class="timer-segment">• Type B: 10문항 → 10분 (60초/문항)</div>
+      <div class="timer-segment">• Type C: 10문항 → 40분 (4분/문항)</div>
+
+      <div id="personal-info"></div>
+      <div class="question" id="question-text"></div>
+      <div id="total-timer"></div>
+      <div id="segment-timer"></div>
+      <div id="timer"></div>
+      <div id="progress">
+        <span id="questionProgress">0/0</span>
+      </div>
+      
+      <div class="answers" id="answers"></div>
+
+      <nav>
+        <button id="prev">◀ 이전</button>
+        <button id="next" disabled>다음 ▶</button>
+      </nav>
+    </div>
+
+    <!-- 3) 결과 화면 -->
+      <!-- 3) 결과 화면 -->
+  <div id="result" class="hidden">
+    <h2>감사합니다!</h2>
+    <!-- 기존 설문 결과 다운로드 링크 -->
+    <a id="download-link"
+       href="#"
+       download="survey_result.xlsx">
+      📥 최근 설문 다운로드
+    </a>
+    <!-- 추가: 사용된 코드 다운로드 링크 -->
+    <a id="used-download-link"
+       href="#"
+       download="used_stu_codes.xlsx"
+       style="margin-left:12px;">
+      📥 사용된 코드 다운로드
+    </a>
+  </div>
+
+  </div>
+
+  <!-- inline 스크립트: 4번 동적 처리 & start 버튼 활성화 -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const regionIn   = document.getElementById('region');
+    const subRgGrp   = document.getElementById('subregion-group');
+    const msGrp      = document.getElementById('middleschool-group');
+    const msSelect   = document.getElementById('middleschool');
+    const schoolIn   = document.getElementById('school');
+    const subPills   = document.querySelectorAll('#subregion-group .pill');
+    const nameIn     = document.getElementById('name');
+    const genderIn   = document.getElementById('gender');
+    const bPills     = document.querySelectorAll('#bcount-group .pill');
+    const tPills     = document.querySelectorAll('#schooltype-group .pill');
+    const startBtn   = document.getElementById('start');
+
+    // 입력 완성 시만 활성화
+    function validate() {
+      const nameOK   = !!nameIn.value.trim();
+      const genderOK = !!genderIn.value;
+      const regionOK = !!regionIn.value;
+      let schoolOK  = false;
+      if(regionIn.value === '서울 특별시') {
+        const sel = [...subPills].find(p=>p.classList.contains('selected'));
+        if(sel) {
+          if(sel.dataset.value === '기타 지역') schoolOK = !!schoolIn.value.trim();
+          else schoolOK = !!msSelect.value;
+        }
+      } else {
+        schoolOK = !!schoolIn.value.trim();
+      }
+      const bOK = [...bPills].some(p=>p.classList.contains('selected'));
+      const tOK = [...tPills].some(p=>p.classList.contains('selected'));
+      startBtn.disabled = !(nameOK && genderOK && regionOK && schoolOK && bOK && tOK);
+    }
+
+    // 4번: 거주지역 변경
+  function regionChange() {
+    if (regionIn.value === '서울 특별시') {
+      // 서울 → 구 선택을 위해 페널만 열고, 둘 다 숨김
+      subRgGrp.classList.remove('hidden');
+      msGrp.classList.add('hidden');
+      schoolIn.classList.remove('hidden');
+      msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    } else {
+      // 기타 지역 → 모든 서울 관련 UI 숨기고, 텍스트박스만 표시
+      subRgGrp.classList.add('hidden');
+      msGrp.classList.add('hidden');
+      msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+      schoolIn.classList.remove('hidden');
+    }
+    validate();
+  }
+    regionIn.addEventListener('change', regionChange);
+    regionIn.addEventListener('input', regionChange);
+
+    const schoolMap = {
+      '강남': ['단대부중', '역삼중', '도곡중', '대명중', '대청중', '숙명여중', '휘문중'],
+      '서초': ['원촌중','서초중','반포중', '세화여중'],
+      '송파': ['잠실중','송례중','풍납중'],
+      '목동': ['목동중','목일중','신목중', '월촌중', '양정중', '목운중'],
+      '중계': ['중계중','상명중','불암중', '을지중']
+    };
+
+    // 4-1번: 권역 클릭
+subPills.forEach(p => p.addEventListener('click', () => {
+  // (1) 비주얼 토글
+  subPills.forEach(x => x.classList.remove('selected'));
+  p.classList.add('selected');
+
+  const v = p.dataset.value;
+  if (v === '기타 지역') {
+    // 텍스트 입력만
+    msGrp.classList.add('hidden');
+    schoolIn.classList.remove('hidden');
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+  } else {
+    // 드롭다운으로 선택
+    msGrp.classList.remove('hidden');
+    schoolIn.classList.add('hidden');
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    schoolMap[v].forEach(sch => {
+      const opt = document.createElement('option');
+      opt.value = sch;
+      opt.text  = sch;
+      msSelect.append(opt);
+    });
+  }
+  validate();
+}));
+
+    // 5,6번 pill 셋업
+    function setupPills(group) {
+      group.forEach(p => p.addEventListener('click', () => {
+        group.forEach(x=>x.classList.remove('selected'));
+        p.classList.add('selected');
+        validate();
+      }));
+    }
+    setupPills([...bPills]);
+    setupPills([...tPills]);
+
+    // 입력 시마다 검증
+    [nameIn, schoolIn, msSelect, genderIn].forEach(el =>
+      el.addEventListener('input', validate)
+    );
+  });
+  </script>
+</body>
+</html>
