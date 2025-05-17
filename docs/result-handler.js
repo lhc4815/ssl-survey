@@ -311,7 +311,16 @@ function finishSurvey(params) {
   // 학생 정보 생성 (방어적 코딩)
   let schoolValue = 'N/A';
   try {
-    if (nameIn && nameIn.value) schoolValue = nameIn.value.trim();
+    // TEST 모드에서는 formData의 school 값 사용, 아니면 schoolIn.value 사용
+    if (hasFormData && params.formData.school) {
+      schoolValue = params.formData.school;
+      console.log('formData에서 학교 정보 추출:', schoolValue);
+    } else if (params.schoolIn && params.schoolIn.value) {
+      schoolValue = params.schoolIn.value.trim();
+      console.log('schoolIn에서 학교 정보 추출:', schoolValue);
+    } else {
+      console.warn('학교 정보를 찾을 수 없음, N/A 사용');
+    }
   } catch (e) {
     console.error('학교 정보 처리 오류:', e);
   }
@@ -319,16 +328,26 @@ function finishSurvey(params) {
   // bPills 및 tPills 안전 참조
   let bValue = -1, tValue = -1;
   try {
-    if (Array.isArray(bPills)) {
+    if (hasFormData && typeof params.formData.bIndex === 'number') {
+      // TEST 모드에서는 formData에서 값 사용
+      bValue = params.formData.bIndex;
+      console.log('formData에서 B등급 인덱스 추출:', bValue);
+    } else if (Array.isArray(bPills)) {
       bValue = bPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+      console.log('bPills에서 B등급 인덱스 추출:', bValue);
     }
   } catch (e) {
     console.error('B등급 정보 처리 오류:', e);
   }
   
   try {
-    if (Array.isArray(tPills)) {
+    if (hasFormData && typeof params.formData.tIndex === 'number') {
+      // TEST 모드에서는 formData에서 값 사용
+      tValue = params.formData.tIndex;
+      console.log('formData에서 진학희망 인덱스 추출:', tValue);
+    } else if (Array.isArray(tPills)) {
       tValue = tPills.findIndex(p => p && p.classList && p.classList.contains('selected'));
+      console.log('tPills에서 진학희망 인덱스 추출:', tValue);
     }
   } catch (e) {
     console.error('진학희망 정보 처리 오류:', e);
