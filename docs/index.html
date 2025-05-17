@@ -138,10 +138,20 @@
     
   </style>
 
-  <!-- 외부 스크립트 -->
+  <!-- 외부 스크립트 - 로드 순서 수정 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="result-handler.js"></script>
   <script src="script-min.js"></script>
+  <script>
+    // result-handler.js 로드 확인
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('함수 로드 상태 체크:');
+      console.log(' - finishSurvey 함수:', typeof finishSurvey === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - finishSurveyLocal 함수:', typeof finishSurveyLocal === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - generateSurveyResultJSON 함수:', typeof generateSurveyResultJSON === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - handleEmailSend 함수:', typeof handleEmailSend === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+    });
+  </script>
   <script src="script.js" defer></script>
 </head>
 

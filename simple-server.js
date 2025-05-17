@@ -31,6 +31,9 @@ app.use(express.json({ limit: '50mb' }));
 app.post('/api/send-email', (req, res) => {
   console.log('이메일 전송 요청 받음:', req.body.studentName);
   
+  // 요청 데이터 로깅 (디버깅용)
+  console.log('요청 본문 데이터:', JSON.stringify(req.body, null, 2));
+  
   // 샘플 응답 (실제 이메일 전송은 아직 구현되지 않음)
   res.json({ 
     success: true, 
