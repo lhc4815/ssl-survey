@@ -654,29 +654,76 @@ window.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      document.getElementById('finishSurveyBtn').onclick = () => {
-        console.log('설문 완료 버튼 클릭됨');
-        for (let i = 6; i <= 9; i++) {
-          if (!respC[i]) respC[i] = 'X';
-        }
-        try {
-          finishSurveyLocal();
-        } catch (error) {
-          console.error('설문 완료 처리 중 오류:', error);
-          alert('설문 완료 처리 중 오류가 발생했습니다: ' + error.message);
+      // 설문 완료 버튼 이벤트 리스너 설정 - 직접 함수 정의
+      const finishBtn = document.getElementById('finishSurveyBtn');
+      
+      if (finishBtn) {
+        // 클릭 가시성 개선
+        finishBtn.style.background = '#ff5722';
+        finishBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        finishBtn.style.transition = 'all 0.3s ease';
+        
+        // 호버 효과
+        finishBtn.onmouseover = () => {
+          finishBtn.style.background = '#e64a19';
+          finishBtn.style.transform = 'translateY(-2px)';
+        };
+        
+        finishBtn.onmouseout = () => {
+          finishBtn.style.background = '#ff5722';
+          finishBtn.style.transform = 'translateY(0)';
+        };
+        
+        // 클릭 이벤트
+        finishBtn.onclick = (event) => {
+          event.preventDefault();
+          console.log('설문 완료 버튼 클릭됨!');
           
-          // 기본 화면 전환 (최소한 다음 화면으로 넘어가게)
-          clearQuestionTimer();
-          clearInterval(totalInt);
-          surveyDiv.classList.add('hidden');
-          resultDiv.classList.remove('hidden');
-          
-          if (emailStatus) {
-            emailStatus.textContent = '오류가 발생했습니다. 결과가 저장되지 않았을 수 있습니다.';
-            emailStatus.style.color = '#D32F2F';
+          // 응답 값 채우기
+          for (let i = 6; i <= 9; i++) {
+            if (!respC[i]) respC[i] = 'X';
           }
-        }
-      };
+          
+          // 직접 화면 전환
+          try {
+            console.log('finishSurveyLocal 호출 시도...');
+            
+            // 화면 전환 먼저 수행 (오류가 나도 넘어가도록)
+            clearQuestionTimer();
+            if (typeof totalInt !== 'undefined') clearInterval(totalInt);
+            if (surveyDiv && resultDiv) {
+              surveyDiv.classList.add('hidden');
+              resultDiv.classList.remove('hidden');
+              
+              // 상태 메시지 표시
+              const statusEl = document.getElementById('email-status');
+              if (statusEl) {
+                statusEl.textContent = '이메일 전송 준비 중...';
+                statusEl.style.color = '#1A237E';
+              }
+            }
+            
+            // 결과 처리 함수 호출
+            if (typeof finishSurveyLocal === 'function') {
+              console.log('finishSurveyLocal 함수 호출');
+              finishSurveyLocal();
+            } else {
+              console.error('finishSurveyLocal 함수를 찾을 수 없습니다');
+              alert('설문 완료 함수를 찾을 수 없습니다. 관리자에게 문의하세요.');
+            }
+          } catch (error) {
+            console.error('설문 완료 처리 중 오류 발생:', error);
+            alert('설문 완료 처리 중 오류가 발생했습니다: ' + error.message);
+            
+            if (emailStatus) {
+              emailStatus.textContent = '오류가 발생했습니다. 결과가 저장되지 않았을 수 있습니다.';
+              emailStatus.style.color = '#D32F2F';
+            }
+          }
+        };
+      } else {
+        console.error('설문 완료 버튼 요소를 찾을 수 없습니다');
+      }
 
       startQuestionTimer(C_Q_SEC * 4, () => {
         for (let i = 6; i <= 9; i++) {
