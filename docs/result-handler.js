@@ -194,33 +194,62 @@ function finishSurvey(params) {
   const genderMap = { '남': 0, '여': 1, '기타': 2 };
   
   // genderIn 안전 참조
-  let genderCode = 2; // 기본값
+  let genderCode = 0; // 기본값을 '남'(0)으로 변경
   try {
     if (hasFormData) {
-      // formData에서 직접 값 사용
-      genderCode = genderMap[params.formData.gender] || 2;
+      // formData에서 직접 값 사용 - TEST 모드에서는 '남'으로 기본 설정
+      genderCode = params.formData.gender ? genderMap[params.formData.gender] || 0 : 0;
+      console.log('formData에서 성별 정보 추출:', params.formData.gender, '->', genderCode);
     } else if (params.genderIn && params.genderIn.value) {
-      genderCode = genderMap[params.genderIn.value] || 2;
+      genderCode = genderMap[params.genderIn.value] || 0;
+      console.log('genderIn에서 성별 정보 추출:', params.genderIn.value, '->', genderCode);
+    } else {
+      console.log('성별 정보 없음, 기본값(남) 사용');
     }
   } catch (e) {
     console.error('성별 정보 처리 오류:', e);
   }
   
   // regionIn 안전 참조
-  let regionCode = -1; // 기본값
+  let regionCode = 0; // 기본값을 0(서울)으로 설정
   try {
     if (hasFormData) {
       // formData에서 직접 지역 정보 사용
       const regionName = params.formData.region;
       console.log('직접 복사된 지역 정보:', regionName);
       
-      // 기본적으로 서울은 0으로 설정
-      if (regionName === '서울 특별시') regionCode = 0;
+      // 지역명 → 코드 변환 맵
+      const regionCodeMap = {
+        '서울 특별시': 0,
+        '경기도': 1,
+        '인천 광역시': 2,
+        '강원도': 3,
+        '충청북도': 4,
+        '충청남도': 5,
+        '대전 광역시': 6,
+        '세종 특별자치시': 7,
+        '경상북도': 8,
+        '경상남도': 9,
+        '대구 광역시': 10,
+        '울산 광역시': 11,
+        '부산 광역시': 12,
+        '전라북도': 13,
+        '전라남도': 14,
+        '광주 광역시': 15,
+        '제주 특별자치도': 16
+      };
+      
+      // 지역명이 맵에 있으면 해당 코드를, 없으면 기본값(서울) 사용
+      regionCode = regionCodeMap[regionName] !== undefined ? regionCodeMap[regionName] : 0;
+      console.log('지역명 → 코드 변환:', regionName, '->', regionCode);
       
     } else if (regionIn && regionIn.options && regionIn.selectedOptions) {
       const regionOpts = Array.from(regionIn.options).filter(o => o.value);
       const sortedRegions = regionOpts.map(o => o.text).sort((a,b) => a.localeCompare(b,'ko'));
       regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
+      console.log('regionIn에서 지역 정보 추출:', regionIn.selectedOptions[0].text, '->', regionCode);
+    } else {
+      console.log('지역 정보 없음, 기본값(서울) 사용');
     }
   } catch (e) {
     console.error('지역 정보 처리 오류:', e);
@@ -354,13 +383,13 @@ function finishSurvey(params) {
   }
   
   const row = {
-    학생ID: nextId,
+    학생ID: currentCode || nextId, // 학생ID를 사용한 코드로 변경
     학생성명: nameVal,
     출신학교: schoolValue,
     성별: genderCode,
     거주지역: regionCode,
-    B등급과목수: bValue,
-    진학희망고교: tValue,
+    B등급과목수: bValue === -1 ? 0 : bValue, // 기본값을 0으로 설정
+    진학희망고교: tValue === -1 ? 0 : tValue, // 기본값을 0으로 설정
     자기조절능력평균: averages.find(a => a['척도(대분류)'] === '자기조절능력')?.평균 || 0,
     비교과수행능력평균: averages.find(a => a['척도(대분류)'] === '비교과활동수행력')?.평균 || 0,
     내면학업수행능력평균: averages.find(a => a['척도(대분류)'] === '내면학업수행능력')?.평균 || 0,
