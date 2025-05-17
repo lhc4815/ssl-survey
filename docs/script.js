@@ -124,25 +124,40 @@ window.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  // TEST 모드 전역 변수
+  let isTestMode = false;
+  const testModeCheckbox = document.getElementById('test-mode');
+  
+  // 테스트 모드 토글
+  if (testModeCheckbox) {
+    testModeCheckbox.addEventListener('change', function() {
+      isTestMode = this.checked;
+      console.log('TEST 모드:', isTestMode ? '활성화' : '비활성화');
+    });
+  }
+
   // ⇨ ➌ 코드 입력 검증 처리
   codeSubmit.addEventListener('click', e => {
     e.preventDefault();
     const code = codeInput.value.trim();
     
-    // 길이 검사
-    if (code.length < 4) {
+    // TEST 모드 확인
+    isTestMode = testModeCheckbox && testModeCheckbox.checked;
+    
+    // 길이 검사 (TEST 모드에서는 건너뜀)
+    if (!isTestMode && code.length < 4) {
       codeMessage.textContent = '코드는 최소 4자 이상이어야 합니다.';
       return;
     }
     
-    // 중복 입력 검사
-    if (usedCodes.includes(code)) {
+    // 중복 입력 검사 (TEST 모드에서는 건너뜀)
+    if (!isTestMode && usedCodes.includes(code)) {
       codeMessage.textContent = '이미 사용된 코드입니다. 설문을 진행할 수 없습니다.';
       return;
     }
     
     // 검증 통과
-    currentCode = code;
+    currentCode = code || 'TEST';
     codeForm.classList.add('hidden');
     userForm.classList.remove('hidden');
     codeMessage.textContent = '';
@@ -313,14 +328,43 @@ window.addEventListener('DOMContentLoaded', () => {
         respC = Array(questionsC.length).fill(null);
         
         // UI 전환 및 타이머 시작
-        idxA = idxB = idxC = 0;
         userForm.classList.add('hidden');
         surveyDiv.classList.remove('hidden');
-        stage = 'A';
         startTime = Date.now();
-        startTotalTimer();
-        startSegmentATimer();
-        renderQuestionA();
+        
+        // TEST 모드일 경우 마지막 문항으로 바로 이동
+        if (isTestMode) {
+          console.log('TEST 모드: 마지막 문항으로 이동 (테스트 데이터 생성)');
+          
+          // 테스트용 의미있는 데이터 생성
+          respA = Array(questionsA.length).fill(0).map(() => Math.floor(Math.random() * 5) + 1); // 1-5 사이 랜덤값
+          respB = Array(questionsB.length).fill(0).map(() => ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]); // A-D 랜덤값
+          respC = Array(questionsC.length).fill(0).map(() => ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)]); // A-D 랜덤값
+          
+          console.log('TEST 모드 샘플 응답 생성됨:', {
+            respA: respA.slice(0, 5) + '...',
+            respB: respB.join(''),
+            respC: respC.join('')
+          });
+          
+          // 인덱스 설정 (마지막 항목으로)
+          idxA = questionsA.length - 1;
+          idxB = questionsB.length - 1;
+          idxC = 0;
+          typeCPage = 6; // 마지막 Type C 섹션 (문항 7-10)
+          
+          stage = 'C';
+          startTotalTimer();
+          startSegmentCTimer();
+          renderQuestionC();
+        } else {
+          // 일반 모드: 처음부터 시작
+          idxA = idxB = idxC = 0;
+          stage = 'A';
+          startTotalTimer();
+          startSegmentATimer();
+          renderQuestionA();
+        }
       })
       .catch(e => {
         console.error(e);
@@ -620,29 +664,76 @@ window.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      document.getElementById('finishSurveyBtn').onclick = () => {
-        console.log('설문 완료 버튼 클릭됨');
-        for (let i = 6; i <= 9; i++) {
-          if (!respC[i]) respC[i] = 'X';
-        }
-        try {
-          finishSurveyLocal();
-        } catch (error) {
-          console.error('설문 완료 처리 중 오류:', error);
-          alert('설문 완료 처리 중 오류가 발생했습니다: ' + error.message);
+      // 설문 완료 버튼 이벤트 리스너 설정 - 직접 함수 정의
+      const finishBtn = document.getElementById('finishSurveyBtn');
+      
+      if (finishBtn) {
+        // 클릭 가시성 개선
+        finishBtn.style.background = '#ff5722';
+        finishBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        finishBtn.style.transition = 'all 0.3s ease';
+        
+        // 호버 효과
+        finishBtn.onmouseover = () => {
+          finishBtn.style.background = '#e64a19';
+          finishBtn.style.transform = 'translateY(-2px)';
+        };
+        
+        finishBtn.onmouseout = () => {
+          finishBtn.style.background = '#ff5722';
+          finishBtn.style.transform = 'translateY(0)';
+        };
+        
+        // 클릭 이벤트
+        finishBtn.onclick = (event) => {
+          event.preventDefault();
+          console.log('설문 완료 버튼 클릭됨!');
           
-          // 기본 화면 전환 (최소한 다음 화면으로 넘어가게)
-          clearQuestionTimer();
-          clearInterval(totalInt);
-          surveyDiv.classList.add('hidden');
-          resultDiv.classList.remove('hidden');
-          
-          if (emailStatus) {
-            emailStatus.textContent = '오류가 발생했습니다. 결과가 저장되지 않았을 수 있습니다.';
-            emailStatus.style.color = '#D32F2F';
+          // 응답 값 채우기
+          for (let i = 6; i <= 9; i++) {
+            if (!respC[i]) respC[i] = 'X';
           }
-        }
-      };
+          
+          // 직접 화면 전환
+          try {
+            console.log('finishSurveyLocal 호출 시도...');
+            
+            // 화면 전환 먼저 수행 (오류가 나도 넘어가도록)
+            clearQuestionTimer();
+            if (typeof totalInt !== 'undefined') clearInterval(totalInt);
+            if (surveyDiv && resultDiv) {
+              surveyDiv.classList.add('hidden');
+              resultDiv.classList.remove('hidden');
+              
+              // 상태 메시지 표시
+              const statusEl = document.getElementById('email-status');
+              if (statusEl) {
+                statusEl.textContent = '이메일 전송 준비 중...';
+                statusEl.style.color = '#1A237E';
+              }
+            }
+            
+            // 결과 처리 함수 호출
+            if (typeof finishSurveyLocal === 'function') {
+              console.log('finishSurveyLocal 함수 호출');
+              finishSurveyLocal();
+            } else {
+              console.error('finishSurveyLocal 함수를 찾을 수 없습니다');
+              alert('설문 완료 함수를 찾을 수 없습니다. 관리자에게 문의하세요.');
+            }
+          } catch (error) {
+            console.error('설문 완료 처리 중 오류 발생:', error);
+            alert('설문 완료 처리 중 오류가 발생했습니다: ' + error.message);
+            
+            if (emailStatus) {
+              emailStatus.textContent = '오류가 발생했습니다. 결과가 저장되지 않았을 수 있습니다.';
+              emailStatus.style.color = '#D32F2F';
+            }
+          }
+        };
+      } else {
+        console.error('설문 완료 버튼 요소를 찾을 수 없습니다');
+      }
 
       startQuestionTimer(C_Q_SEC * 4, () => {
         for (let i = 6; i <= 9; i++) {

@@ -138,10 +138,20 @@
     
   </style>
 
-  <!-- 외부 스크립트 -->
+  <!-- 외부 스크립트 - 로드 순서 수정 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="result-handler.js"></script>
   <script src="script-min.js"></script>
+  <script>
+    // result-handler.js 로드 확인
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('함수 로드 상태 체크:');
+      console.log(' - finishSurvey 함수:', typeof finishSurvey === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - finishSurveyLocal 함수:', typeof finishSurveyLocal === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - generateSurveyResultJSON 함수:', typeof generateSurveyResultJSON === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+      console.log(' - handleEmailSend 함수:', typeof handleEmailSend === 'function' ? '로드됨 ✓' : '로드 실패 ✗');
+    });
+  </script>
   <script src="script.js" defer></script>
 </head>
 
@@ -162,6 +172,14 @@
       <input type="text" id="stu-code" maxlength="7" placeholder="7자리 코드" />
       <!-- 검증 버튼 -->
       <button id="code-submit" type="button">확인</button>
+      
+      <!-- 테스트 모드 체크박스 (표시 강화) -->
+      <div style="margin-top: 15px; padding: 8px; background-color: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #444; font-weight: bold;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" id="test-mode" style="margin-right: 5px; width: 16px; height: 16px;">
+          <span>TEST 모드</span>
+        </label>
+      </div>
      
       <div id="code-message" style="color:red; margin-top:8px;"></div>
       </div>
