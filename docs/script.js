@@ -124,25 +124,40 @@ window.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  // TEST 모드 전역 변수
+  let isTestMode = false;
+  const testModeCheckbox = document.getElementById('test-mode');
+  
+  // 테스트 모드 토글
+  if (testModeCheckbox) {
+    testModeCheckbox.addEventListener('change', function() {
+      isTestMode = this.checked;
+      console.log('TEST 모드:', isTestMode ? '활성화' : '비활성화');
+    });
+  }
+
   // ⇨ ➌ 코드 입력 검증 처리
   codeSubmit.addEventListener('click', e => {
     e.preventDefault();
     const code = codeInput.value.trim();
     
-    // 길이 검사
-    if (code.length < 4) {
+    // TEST 모드 확인
+    isTestMode = testModeCheckbox && testModeCheckbox.checked;
+    
+    // 길이 검사 (TEST 모드에서는 건너뜀)
+    if (!isTestMode && code.length < 4) {
       codeMessage.textContent = '코드는 최소 4자 이상이어야 합니다.';
       return;
     }
     
-    // 중복 입력 검사
-    if (usedCodes.includes(code)) {
+    // 중복 입력 검사 (TEST 모드에서는 건너뜀)
+    if (!isTestMode && usedCodes.includes(code)) {
       codeMessage.textContent = '이미 사용된 코드입니다. 설문을 진행할 수 없습니다.';
       return;
     }
     
     // 검증 통과
-    currentCode = code;
+    currentCode = code || 'TEST';
     codeForm.classList.add('hidden');
     userForm.classList.remove('hidden');
     codeMessage.textContent = '';
@@ -313,14 +328,33 @@ window.addEventListener('DOMContentLoaded', () => {
         respC = Array(questionsC.length).fill(null);
         
         // UI 전환 및 타이머 시작
-        idxA = idxB = idxC = 0;
         userForm.classList.add('hidden');
         surveyDiv.classList.remove('hidden');
-        stage = 'A';
         startTime = Date.now();
-        startTotalTimer();
-        startSegmentATimer();
-        renderQuestionA();
+        
+        // TEST 모드일 경우 마지막 문항으로 바로 이동
+        if (isTestMode) {
+          console.log('TEST 모드: 마지막 문항으로 이동');
+          respA = Array(questionsA.length).fill(3); // 기본값 3으로 설정
+          respB = Array(questionsB.length).fill('A'); // 기본값 A로 설정
+          
+          idxA = questionsA.length - 1;
+          idxB = questionsB.length - 1;
+          idxC = 0;
+          typeCPage = 6; // 마지막 Type C 섹션 (문항 7-10)
+          
+          stage = 'C';
+          startTotalTimer();
+          startSegmentCTimer();
+          renderQuestionC();
+        } else {
+          // 일반 모드: 처음부터 시작
+          idxA = idxB = idxC = 0;
+          stage = 'A';
+          startTotalTimer();
+          startSegmentATimer();
+          renderQuestionA();
+        }
       })
       .catch(e => {
         console.error(e);
