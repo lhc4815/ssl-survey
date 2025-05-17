@@ -36,28 +36,34 @@ function finishSurveyLocal() {
   params.genderIn = localGenderIn;
   params.regionIn = localRegionIn;
   params.emailStatus = localEmailStatus;
-  // 코드 관련 정보 처리
-  params.currentCode = typeof currentCode !== 'undefined' ? currentCode : '';
+  // 코드 관련 정보 처리 - currentCode 직접 참조 방지
+  let localCurrentCode = '';
   
-  // 코드 값 직접 가져오기 (전역 변수에 없는 경우)
-  if (!params.currentCode) {
-    try {
-      // 코드 입력 필드에서 값 가져오기 시도
+  // 코드 값 직접 가져오기
+  try {
+    // 1. 전역 변수 존재 체크
+    if (typeof currentCode !== 'undefined') {
+      localCurrentCode = currentCode;
+      console.log('전역 currentCode 사용');
+    } 
+    // 2. 코드 입력 필드에서 가져오기
+    else {
       const codeInput = document.getElementById('stu-code');
       if (codeInput && codeInput.value) {
-        params.currentCode = codeInput.value.trim();
-        console.log('코드 입력 필드에서 값 가져옴:', params.currentCode);
-      } else {
-        // 저장된 사용자 코드가 없으면 TEST 모드에서 자동 생성
-        if (isTestMode) {
-          params.currentCode = 'TEST' + new Date().getTime().toString().slice(-4);
-          console.log('TEST 모드용 임시 코드 생성:', params.currentCode);
-        }
+        localCurrentCode = codeInput.value.trim();
+        console.log('코드 입력 필드에서 값 가져옴:', localCurrentCode);
+      } 
+      // 3. TEST 모드면 임시값 생성
+      else if (isTestMode) {
+        localCurrentCode = 'TEST' + new Date().getTime().toString().slice(-4);
+        console.log('TEST 모드용 임시 코드 생성:', localCurrentCode);
       }
-    } catch (e) {
-      console.error('코드 값 가져오기 오류:', e);
     }
+  } catch (e) {
+    console.error('코드 값 가져오기 오류:', e);
   }
+  
+  params.currentCode = localCurrentCode;
   
   // usedCodes가 이 시점에 undefined면 localStorage에서 직접 로드
   if (typeof usedCodes === 'undefined' || !Array.isArray(usedCodes)) {
